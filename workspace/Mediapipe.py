@@ -13,62 +13,62 @@ import math
 F_WIDTH = 600
 F_HEIGHT = 600
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture("C:/Users/root/Desktop/hisa_reserch/hand_motion_search/shuwa_video/5kyu/mp4/VTS_06_1.mp4")
+#cap = cv2.VideoCapture(0)
 
-
+#メディアパイプ実行，描画
+#
+#
+#
 
 def useMediaPipe():
-    canvas = cv2.imread('canvas.jpeg')
-    canvas = cv2.resize(canvas, [600,600])
     while(True):      
         ret, frame = cap.read()
-        frame = cv2.resize(frame, (F_WIDTH, F_HEIGHT))
-        frame_RGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        soloImage = canvas.copy()
-        resizeImage = canvas.copy()
+        #frame = cv2.resize(frame, (F_WIDTH, F_HEIGHT))
+        
         if ret == True:
-            #hand_results = hands.process(frame_RGB)
-            pose_results = pose.process(frame_RGB)
+            frame_RGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            if isMPhand:
+                hand_results = hands.process(frame_RGB)
 
+                if hand_results.multi_hand_landmarks is not None:
+                    for landmarks_hand in hand_results.multi_hand_landmarks:
 
+                        #print(landmarks.landmark)
+                        '''
+                        [x:***
+                        y:***
+                        z:***
+                        , ...(*21個)]
 
-            """
-            if hand_results.multi_hand_landmarks is not None:
-                for landmarks_hand in hand_results.multi_hand_landmarks:
+                        *** = 0~1 正規化されている
+                        
+                        '''
+                        
+                        #drawHand(copy.deepcopy(landmarks_hand.landmark), frame)
 
-                    #print(landmarks.landmark)
-                    '''
-                    [x:***
-                    y:***
-                    z:***
-                    , ...(*21個)]
+                        #drawHand_centar(copy.deepcopy(landmarks_hand.landmark), soloImage)
 
-                    *** = 0~1 正規化されている
-                    
-                    '''
-                    
-                    #drawHand(copy.deepcopy(landmarks_hand.landmark), frame)
+                        #drawHand_resize(copy.deepcopy(landmarks_hand.landmark), resizeImage)
 
-                    drawHand_centar(copy.deepcopy(landmarks_hand.landmark), soloImage)
+                        mp_drawing.draw_landmarks(
+                            image=frame,
+                            landmark_list=landmarks_hand,
+                            connections=mp_hands.HAND_CONNECTIONS,
+                            landmark_drawing_spec=drawing_spec,
+                            connection_drawing_spec=drawing_spec) # 特徴点の描画
+    
 
-                    drawHand_resize(copy.deepcopy(landmarks_hand.landmark), resizeImage)
+                
+            if isMPpose:
+                pose_results = pose.process(frame_RGB)
 
-                    '''
+                if pose_results.pose_landmarks is not None:
                     mp_drawing.draw_landmarks(
-                        image=frame,
-                        landmark_list=landmarks,
-                        connections=mp_hands.HAND_CONNECTIONS,
-                        landmark_drawing_spec=drawing_spec,
-                        connection_drawing_spec=drawing_spec) # 特徴点の描画
-                    '''
-            """
-            
-            if pose_results.pose_landmarks is not None:
-                mp_drawing.draw_landmarks(
-                    frame,
-                    pose_results.pose_landmarks,
-                    mp_pose.POSE_CONNECTIONS,
-                    landmark_drawing_spec=mp.solutions.drawing_styles.get_default_pose_landmarks_style())
+                        frame,
+                        pose_results.pose_landmarks,
+                        mp_pose.POSE_CONNECTIONS,
+                        landmark_drawing_spec=drawing_spec)
 
 
 
@@ -76,12 +76,6 @@ def useMediaPipe():
             cv2.flip(frame, 1)
             cv2.imshow("linedFrame", frame)
             cv2.moveWindow("linedFrame", 0, 0)
-            cv2.flip(soloImage, 1)
-            cv2.imshow("soloImage", soloImage)
-            cv2.moveWindow("soloImage", F_WIDTH, 0)
-            cv2.flip(soloImage, 1)
-            cv2.imshow("resizeImage", resizeImage)
-            cv2.moveWindow("resizeImage", F_WIDTH*2, 0)
             
             key = cv2.waitKey(1)
 
@@ -214,19 +208,14 @@ if __name__ == "__main__":
         max_num_hands=2,
         min_detection_confidence=0.5,
         min_tracking_confidence=0.5,
-    )
+        )
 
     mp_pose = mp.solutions.pose
     pose = mp_pose.Pose(
-        #upper_body_only=True,
-        model_complexity=1,
-        enable_segmentation=True,
-        min_detection_confidence=0.5,
-        #min_tracking_confidence=0.5,
-    )
+        )
 
-
-
+    isMPhand = True
+    isMPpose = True
 
     useMediaPipe()
 

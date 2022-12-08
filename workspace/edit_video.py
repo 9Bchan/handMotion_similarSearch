@@ -1,11 +1,15 @@
 from ast import Num
 import cv2
 from cv2 import imshow
-import win32gui
-import win32con
 import time
 import copy
 import numpy as np
+
+# 手話のビデオを単語ごとに分割保存しなおすやつ
+#
+#
+#
+
 
 class Edit_video():
     def __init__(self):
@@ -20,11 +24,9 @@ class Edit_video():
     def import_video(self):
         while True:
             #video_path = input("video path? = ")
-            video_path = "C:/Users/root/Desktop/hisa_reserch/hand_motion_search/shuwa_video_sample/5kyu/mp4/VTS_06_1.mpeg"
+            video_path = "C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/shuwa_video/5kyu/mp4/VTS_02_1.mp4" # ,---------------編集対象
             ''' video path memo
-            C:/Users/root/Desktop/hisa_reserch/hand_motion_search/shuwa_video_sample/5kyu/mp4/VTS_06_1.mpeg
-            C:/Users/root/Desktop/hisa_reserch/hand_motion_search/video/aiueo.mp4
-            C:/Users/root/Desktop/hisa_reserch/hand_motion_search/shuwa_video_sample/5kyu/mp4/hands_video0.mp4
+            C:/Users/root/Desktop/hisa_reserch/hand_motion_search/shuwa_video/5kyu/mp4/VTS_02_1.mp4
             '''
             cap = cv2.VideoCapture(video_path)
             if cap.isOpened() == False:
@@ -33,12 +35,11 @@ class Edit_video():
             self.video_path = video_path
             self.cap = cap
             break
-
+    
+    #　ただ再生するだけ
     def playback(self):
         # Displayed in the foreground
         cv2.namedWindow("video", cv2.WINDOW_NORMAL)
-        hwnd = win32gui.FindWindow(None, "video")
-        win32gui.SetWindowPos(hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
 
         while True:
             ret, frame = self.cap.read()
@@ -53,30 +54,60 @@ class Edit_video():
                 break
 
             time.sleep(1/self.video_fps)
-    
+
+    # 動画編集用
     def reading(self):
         # Displayed in the foreground
+        waitKeyMode = 0 # 連続再生1 フレーム切り替え0 
+        isFirst = True
+        
+        file = None
+        makeFileCnt = 0
+        
+        #reactangleRange_0 = [500, 100] #抽出点調査用
+        #reactamgleRange_1 = [reactangleRange_0[0]+20, reactangleRange_0[1]+20]
+
+        saveDir = "C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video/bunsyo/" # <--------------------------保存先
 
         while True:
             ret, frame = self.cap.read()
-            frame_num = int(self.cap.get(cv2.CAP_PROP_POS_FRAMES))
+            frame_num = int(self.cap.get(cv2.CAP_PROP_POS_FRAMES)) # 現在の再生箇所
+
+
+            #cv2.rectangle(frame, reactangleRange_0, reactamgleRange_1, (0, 255, 0))
+
+            #print(frame[101][501][2])　#抽出点調査用
 
             if ret == True:
                 frame_RGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
                 cv2.imshow("video", frame)
 
+                if isVideoSplit == True:
+                    frame_bit = frame[101][501][2]
+                    if frame_bit < 150:
+                        if isFirst == True:
+                            isFirst = False
+                            fmt = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+                            filePath = saveDir + str(makeFileCnt) +".mp4"
+                            frame_rate = self.video_fps
+                            size = (self.video_width, self.video_height)
+                            writer = cv2.VideoWriter(filePath, fmt, frame_rate, size) # ライター作成
+                            makeFileCnt = makeFileCnt + 1
+                        writer.write(frame)
+                    else:
+                        if isFirst == False:
+                            isFirst = True
+                            writer.release()
+            if isFirst == False:
+                isFirst = True
+                writer.release()
+
+
 
             ## key input ------------------------------------------------------
-            key = cv2.waitKeyEx(0)
+            key = cv2.waitKeyEx(waitKeyMode)
 
-            if key & 0xFF == ord('e'):
-                self.frame_edit(frame.copy(), frame_num)
-                cv2.waitKeyEx(0)
-            if key & 0xFF == ord('s'):
-                self.synthesize_frames(frame_num, frame_num -1)
-                self.cap.set(cv2.CAP_PROP_POS_FRAMES, frame_num) # 再生箇所戻す 
-                cv2.waitKeyEx(0)
             if key & 0xFF == ord('q'):
                 break
             if key & 0xFF == ord('p'):
@@ -90,58 +121,15 @@ class Edit_video():
             if key == 2424832:
                 self.cap.set(cv2.CAP_PROP_POS_FRAMES, frame_num-2) 
                 #print("left key")
-
+            if key & 0xFF == ord('m'): # 連続再生切り替え
+                if waitKeyMode == 0:
+                    waitKeyMode = 1
+                else:
+                    waitKeyMode = 1
                     
-    
-    def frame_edit(self, frame, frame_Num):
-        column = 0
-        frame_lined_odd = np.array(frame)
-        black_line = np.zeros((self.video_width,3))
-        while True:
-            if column % 2:
-                try:
-                    frame_lined_odd[column] = black_line
-                except:
-                    break
-                
-            column = column + 1
 
-        imshow("lineed frame in odd columns <number {}>".format(frame_Num), frame_lined_odd)
-
-        column = 0
-        frame_lined_even = np.array(frame)
-        while True:
-            if not column % 2:
-                try:
-                    frame_lined_even[column] = black_line
-                except:
-                    break
-                
-            column = column + 1
-
-        imshow("lineed frame in even columns <number {}>".format(frame_Num), frame_lined_even)
-
-    def synthesize_frames(self, first_num, second_num):
-        self.cap.set(cv2.CAP_PROP_POS_FRAMES, first_num)
-        first_ret, first_frame  = self.cap.read()
-        self.cap.set(cv2.CAP_PROP_POS_FRAMES, second_num)
-        first_ret, second_frame  = self.cap.read()
-
-        column = 0
-        synthesized_frame = first_frame.copy()
-        while True:
-            if column % 2:
-                try:
-                    synthesized_frame[column] = second_frame[column]
-                    
-                except:
-                    break
             
-            column = column + 1
-
-        imshow("synthesized_frame <{} and {}>".format(first_num, second_num), synthesized_frame)
-
-
+                
 
 
 
@@ -165,6 +153,8 @@ class Edit_video():
 
 
 if __name__ == "__main__":
+    isVideoSplit = True
+
     start_edit = Edit_video()
 
     start_edit.import_video()
