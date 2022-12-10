@@ -28,7 +28,7 @@ class Treat_timeSeriesHandData():
                 frame_handData_R = frame_TShandData[21*2:]
                 
                 Noneでーた部分削除及びフレーム差から速度データのリストを作成し利用できるようにする
-
+yes
 
 
 if __name__ == "__main__":
