@@ -1,19 +1,67 @@
 import glob
 import csv
+from natsort import natsorted
+import os
 import sys
-
-def load_queryData(queryData_dirPath):
-    treat_TShandData = Treat_timeSeriesHandData()
-
-    queryData_filePath_list = glob.glob(queryData_dirPath +"*")
-    #print(queryData_filePath_list)
-
-    if queryData_filePath_list is not None:
-        treat_TShandData.arrangement(queryData_filePath_list[0])
-
-    treat_TShandData.calc_frameDifference()
+import matplotlib.pyplot as plt
 
 
+
+
+# 問い合わせデータ登録用クラス
+class QueryDataBase():
+    def __init__(self):
+        self.AllVelocity_TShandData_L = [] # AllVelocity_TShandData_L[データ名][フレーム][要素(0~41)]
+        self.AllVelocity_TShandData_R = []
+        self.AllDataNum = []
+        self.labels = None
+
+    def ctrl_plt(self): # 指定したデータのプロットを表示
+        print("Displays a plot of the specified data")
+        isCont = True
+
+        while isCont:
+            try:
+                # データ指定フロー
+                isSide = input("Left of Right <l/r> -> ")
+                if not isSide == "l" or isSide == "r":
+                    print(1/0) # 例外判定用
+
+                dataNum = int(input("The data number is -> "))
+                if isSide == "l":
+                    velocity_TShandData = self.AllVelocity_TShandData_L[dataNum]
+                if isSide == "r":
+                    velocity_TShandData= self.AllVelocity_TShandData_R[dataNum]
+
+                indexNum = int(input("The index number is <0~41> -> "))
+                if not 0 <= indexNum <= 41:
+                    print(1/0) # 例外判定用
+
+                # プロット用データ処理
+                x = []
+                y = []
+                for frameNum, velocity_handData in enumerate(velocity_TShandData):
+                    x.append(frameNum)
+                    y.append(velocity_handData[indexNum])
+
+                plt.figure("data["+ str(dataNum) +"] | hand["+ isSide +"] | label["+ self.labels[indexNum] + "]")
+                plt.plot(x, y, color="steelblue")
+                plt.show()
+
+            except:
+                print("Invalid value entered")
+
+            # 継続判定
+            while True:
+                ans = str(input("Do you want to run again? <y/n> ->"))
+                if ans  == 'y':
+                    break
+                if ans == 'n':
+                    print("exit the [ctrl_plot]")
+                    isCont = False
+                    break 
+
+# csvデータ処理用クラス
 class Treat_timeSeriesHandData():
     def __init__(self):
         self.totalFrame= None # 総フレーム数
@@ -22,18 +70,22 @@ class Treat_timeSeriesHandData():
         self.position_TShandData_R = []
         self.velocity_TShandData_L = [] # 速度データ推移
         self.velocity_TShandData_R = []
+        self.labels = None
 
-    def arrangement(self, handData_filePath):
+    def arrangement(self, handData_filePath): # 問い合わせ用csvデータ読み込み
         with open(handData_filePath, newline='') as f:
             csvreader = csv.reader(f)
             timeSeries_handData = [row for row in csvreader] # 一行目:ラベル 二行目以降:フレーム毎の左右のハンドデータ
 
-            labels = timeSeries_handData[0] 
+            labelsData = timeSeries_handData[0] 
+            if self.labels is None:
+                self.labels = labelsData
+
             for frame_TShandData in timeSeries_handData[1:]:
-                frame_handData_L = frame_TShandData[:20*2+1] # 単位フレームにおけるハンドデータを左右に分割
+                frame_handData_L = frame_TShandData[:21*2] # 単位フレームにおけるハンドデータを左右に分割
                 frame_handData_R = frame_TShandData[21*2:]
                 
-                if frame_handData_L[0] is not None and frame_handData_L[0] is not None: #そのフレームにおいて両手が検出されていればリストに追加
+                if not frame_handData_L[0] == 'None' and not frame_handData_R[0] == 'None': #そのフレームにおいて両手が検出されていればリストに追加
                     frame_handData_L_float = [float(i) for i in frame_handData_L] # 要素をstrからfloatに変換
                     frame_handData_R_float = [float(i) for i in frame_handData_R]
                     self.position_TShandData_L.append(frame_handData_L_float)
@@ -44,19 +96,37 @@ class Treat_timeSeriesHandData():
                 
     
     def calc_frameDifference(self): # フレームの差をとりデータのフレーム速度推移を求める
-        
         for frame_num in range(self.totalFrame): # 左右のpositionリストの大きさは同じ フレーム数分ループ
             if not frame_num == 0: # 最初のフレームのみ除外
+                velocity_handData_L = []
+                velocity_handData_R = []
                 for index_num in range(self.totalIndex): # 単位フレームのデータ要素数分ループ
-                    self.velocity_TShandData_L.append(self.position_TShandData_L[frame_num][index_num] - self.position_TShandData_L[frame_num][index_num - 1])
-                    self.velocity_TShandData_R.append(self.position_TShandData_R[frame_num][index_num] - self.position_TShandData_R[frame_num][index_num - 1])
-        
-        print(self.velocity_TShandData_L)
+                    velocity_handData_L.append(self.position_TShandData_L[frame_num][index_num] - self.position_TShandData_L[frame_num][index_num - 1])
+                    velocity_handData_R.append(self.position_TShandData_R[frame_num][index_num] - self.position_TShandData_R[frame_num][index_num - 1])
+                self.velocity_TShandData_L.append(velocity_handData_L)
+                self.velocity_TShandData_R.append(velocity_handData_R)
+                
 
+ def load_queryData(queryData_dirPath):
+    print("Start loading query data")
+    queryData_filePath_list = glob.glob(queryData_dirPath +"*") # データのパス取得
 
-全単語のでーたをとうろく、すぷりんぐのじっこう
+    if queryData_filePath_list is not None:
+        for filePath in natsorted(queryData_filePath_list): # ファイルを番号順に読み込むためにnatsortedを使用
+            treat_TShandData = Treat_timeSeriesHandData()
+            treat_TShandData.arrangement(filePath)
+            treat_TShandData.calc_frameDifference()
 
+            fileName = os.path.splitext(os.path.basename(filePath))[0]
+
+            # データベース登録
+            query_DataBase.AllVelocity_TShandData_L.append(treat_TShandData.velocity_TShandData_L)
+            query_DataBase.AllVelocity_TShandData_R.append(treat_TShandData.velocity_TShandData_R)
+            query_DataBase.AllDataNum.append(fileName)
+            query_DataBase.labels = treat_TShandData.labels
     
+    print("Completed loading query data")
+
 
 
 if __name__ == "__main__":
@@ -65,4 +135,7 @@ if __name__ == "__main__":
     tango_data_dirPath = userDir + "HandMotion_SimilarSearch/TimeSeries_HandData_part/tango/"
     bunsyo_data_dirPath = userDir + "HandMotion_SimilarSearch/TimeSeries_HandData_part/tango/"
 
+    query_DataBase = QueryDataBase() # データベース用意
+
     load_queryData(tango_data_dirPath)
+    query_DataBase.ctrl_plt()
