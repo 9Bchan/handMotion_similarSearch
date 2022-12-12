@@ -8,13 +8,18 @@ import matplotlib.pyplot as plt
 
 
 
-# 問い合わせデータ登録用クラス
-class QueryDataBase():
+# 検索対象データ登録用クラス
+class TargetDataBase():
     def __init__(self):
         self.AllVelocity_TShandData_L = [] # AllVelocity_TShandData_L[データ名][フレーム][要素(0~41)]
         self.AllVelocity_TShandData_R = []
         self.AllDataNum = []
         self.labels = None
+
+class SearchData():
+    def __init__(self):
+        self.Velocity_TShandData_L = None # AllVelocity_TShandData_L[データ名][フレーム][要素(0~41)]
+        self.Velocity_TShandData_R = None
 
 # csvデータ処理用クラス
 class Treat_timeSeriesHandData():
@@ -63,12 +68,12 @@ class Treat_timeSeriesHandData():
                 
 
 # 問い合わせデータの読み込み
-def load_queryData(queryData_dirPath):
-    print("Start loading query data")
-    queryData_filePath_list = glob.glob(queryData_dirPath +"*") # データのパス取得
+def load_targetData(targetData_dirPath):
+    print("Start loading target data")
+    targetData_filePath_list = glob.glob(targetData_dirPath +"*") # データのパス取得
 
-    if queryData_filePath_list is not None:
-        for filePath in natsorted(queryData_filePath_list): # ファイルを番号順に読み込むためにnatsortedを使用
+    if targetData_filePath_list is not None:
+        for filePath in natsorted(targetData_filePath_list): # ファイルを番号順に読み込むためにnatsortedを使用
             treat_TShandData = Treat_timeSeriesHandData()
             treat_TShandData.arrangement(filePath)
             treat_TShandData.calc_frameDifference()
@@ -76,12 +81,22 @@ def load_queryData(queryData_dirPath):
             fileName = os.path.splitext(os.path.basename(filePath))[0]
 
             # データベース登録
-            query_DataBase.AllVelocity_TShandData_L.append(treat_TShandData.velocity_TShandData_L)
-            query_DataBase.AllVelocity_TShandData_R.append(treat_TShandData.velocity_TShandData_R)
-            query_DataBase.AllDataNum.append(fileName)
-            query_DataBase.labels = treat_TShandData.labels
+            target_DataBase.AllVelocity_TShandData_L.append(treat_TShandData.velocity_TShandData_L)
+            target_DataBase.AllVelocity_TShandData_R.append(treat_TShandData.velocity_TShandData_R)
+            target_DataBase.AllDataNum.append(fileName)
+            target_DataBase.labels = treat_TShandData.labels
     
-    print("Completed loading query data")
+    print("Completed loading target data")
+
+def load_searchData(searchData_Path):
+    if searchData_Path is not None:
+        treat_TShandData = Treat_timeSeriesHandData()
+        treat_TShandData.arrangement(searchData_Path)
+        treat_TShandData.calc_frameDifference()
+
+        search_Data.Velocity_TShandData_L = treat_TShandData.velocity_TShandData_L
+        search_Data.Velocity_TShandData_R = treat_TShandData.velocity_TShandData_R
+    print(len(search_Data.Velocity_TShandData_L))
 
 # 指定したデータのプロットを表示
 def ctrl_plt(): 
@@ -98,10 +113,10 @@ def ctrl_plt():
 
             dataNum = int(input("The data number is -> "))
             if isSide == "l":
-                velocity_TShandData = query_DataBase.AllVelocity_TShandData_L[dataNum]
+                velocity_TShandData = target_DataBase.AllVelocity_TShandData_L[dataNum]
             if isSide == "r":
                 baseLabel = 42
-                velocity_TShandData= query_DataBase.AllVelocity_TShandData_R[dataNum]
+                velocity_TShandData= target_DataBase.AllVelocity_TShandData_R[dataNum]
 
             indexNum = int(input("The index number is <0~41> -> "))
             if not 0 <= indexNum <= 41:
@@ -137,9 +152,12 @@ if __name__ == "__main__":
     userDir = "C:/Users/hisa/Desktop/research/"
     # "C:/Users/root/Desktop/hisa_reserch/"
     tango_data_dirPath = userDir + "HandMotion_SimilarSearch/TimeSeries_HandData_part/tango/"
-    bunsyo_data_dirPath = userDir + "HandMotion_SimilarSearch/TimeSeries_HandData_part/tango/"
+    bunsyo_data_dirPath = userDir + "HandMotion_SimilarSearch/TimeSeries_HandData_part/bunsyo/"
 
-    query_DataBase = QueryDataBase() # データベース用意
+    target_DataBase = TargetDataBase() # データベース用意
+    search_Data = SearchData()
 
-    load_queryData(tango_data_dirPath)
-    ctrl_plt()
+    #load_targetData(tango_data_dirPath)
+    load_searchData(bunsyo_data_dirPath + "4.csv")
+
+    #ctrl_plt()
