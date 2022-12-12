@@ -161,3 +161,5 @@ if __name__ == "__main__":
     load_searchData(bunsyo_data_dirPath + "4.csv")
 
     #ctrl_plt()
+
+    #a
