@@ -16,51 +16,6 @@ class QueryDataBase():
         self.AllDataNum = []
         self.labels = None
 
-    def ctrl_plt(self): # 指定したデータのプロットを表示
-        print("Displays a plot of the specified data")
-        isCont = True
-
-        while isCont:
-            try:
-                # データ指定フロー
-                isSide = input("Left of Right <l/r> -> ")
-                if not isSide == "l" or isSide == "r":
-                    print(1/0) # 例外判定用
-
-                dataNum = int(input("The data number is -> "))
-                if isSide == "l":
-                    velocity_TShandData = self.AllVelocity_TShandData_L[dataNum]
-                if isSide == "r":
-                    velocity_TShandData= self.AllVelocity_TShandData_R[dataNum]
-
-                indexNum = int(input("The index number is <0~41> -> "))
-                if not 0 <= indexNum <= 41:
-                    print(1/0) # 例外判定用
-
-                # プロット用データ処理
-                x = []
-                y = []
-                for frameNum, velocity_handData in enumerate(velocity_TShandData):
-                    x.append(frameNum)
-                    y.append(velocity_handData[indexNum])
-
-                plt.figure("data["+ str(dataNum) +"] | hand["+ isSide +"] | label["+ self.labels[indexNum] + "]")
-                plt.plot(x, y, color="steelblue")
-                plt.show()
-
-            except:
-                print("Invalid value entered")
-
-            # 継続判定
-            while True:
-                ans = str(input("Do you want to run again? <y/n> ->"))
-                if ans  == 'y':
-                    break
-                if ans == 'n':
-                    print("exit the [ctrl_plot]")
-                    isCont = False
-                    break 
-
 # csvデータ処理用クラス
 class Treat_timeSeriesHandData():
     def __init__(self):
@@ -107,7 +62,8 @@ class Treat_timeSeriesHandData():
                 self.velocity_TShandData_R.append(velocity_handData_R)
                 
 
- def load_queryData(queryData_dirPath):
+# 問い合わせデータの読み込み
+def load_queryData(queryData_dirPath):
     print("Start loading query data")
     queryData_filePath_list = glob.glob(queryData_dirPath +"*") # データのパス取得
 
@@ -127,6 +83,54 @@ class Treat_timeSeriesHandData():
     
     print("Completed loading query data")
 
+# 指定したデータのプロットを表示
+def ctrl_plt(): 
+    print("Displays a plot of the specified data")
+    isCont = True
+    baseLabel = 0 # ラベル指定の調整用(左右について)
+
+    while isCont:
+        try:
+            # データ指定フロー
+            isSide = input("Left of Right <l/r> -> ")
+            if not isSide == "l" and not isSide == "r":
+                print(1/0) # 例外判定用
+
+            dataNum = int(input("The data number is -> "))
+            if isSide == "l":
+                velocity_TShandData = query_DataBase.AllVelocity_TShandData_L[dataNum]
+            if isSide == "r":
+                baseLabel = 42
+                velocity_TShandData= query_DataBase.AllVelocity_TShandData_R[dataNum]
+
+            indexNum = int(input("The index number is <0~41> -> "))
+            if not 0 <= indexNum <= 41:
+                print(1/0) # 例外判定用
+
+            # プロット用データ処理
+            x = []
+            y = []
+            for frameNum, velocity_handData in enumerate(velocity_TShandData):
+                x.append(frameNum)
+                y.append(velocity_handData[indexNum])
+
+            plt.figure("data["+ str(dataNum) +"] | hand["+ isSide +"] | label["+ query_DataBase.labels[indexNum + baseLabel] + "]")
+            plt.plot(x, y, color="steelblue")
+            plt.show()
+
+        except:
+            print("Invalid value entered")
+
+        # 継続判定
+        while True:
+            ans = str(input("Do you want to run again? <y/n> ->"))
+            if ans  == 'y':
+                break
+            if ans == 'n':
+                print("exit the [ctrl_plot]")
+                isCont = False
+                break 
+
 
 
 if __name__ == "__main__":
@@ -138,4 +142,4 @@ if __name__ == "__main__":
     query_DataBase = QueryDataBase() # データベース用意
 
     load_queryData(tango_data_dirPath)
-    query_DataBase.ctrl_plt()
+    ctrl_plt()
