@@ -4,7 +4,9 @@ from natsort import natsorted
 import os
 import sys
 import matplotlib.pyplot as plt
-
+import matplotlib.gridspec as gridspec
+import numpy as np
+import pandas as pd
 
 
 
@@ -18,7 +20,7 @@ class TargetDataBase():
 
 class SearchData():
     def __init__(self):
-        self.Velocity_TShandData_L = None # AllVelocity_TShandData_L[データ名][フレーム][要素(0~41)]
+        self.Velocity_TShandData_L = None # Velocity_TShandData_L[データ名][フレーム][要素(0~41)]
         self.Velocity_TShandData_R = None
 
 # csvデータ処理用クラス
@@ -65,9 +67,167 @@ class Treat_timeSeriesHandData():
                     velocity_handData_R.append(self.position_TShandData_R[frame_num][index_num] - self.position_TShandData_R[frame_num][index_num - 1])
                 self.velocity_TShandData_L.append(velocity_handData_L)
                 self.velocity_TShandData_R.append(velocity_handData_R)
-                
 
-# 問い合わせデータの読み込み
+class Spring():
+    def __init__(self):
+        self.search_data = None # search data
+        self.target_data = None # target data
+        self.path = None        
+        self.dataDist = None
+        self.dtwDist = None
+        self.costMatrix = None
+    
+    # 距離計算
+    def dist(self,x,y):
+        return (x-y)**2
+
+    # 最小値返却
+    def get_min(self, m0, m1, m2, i, j):
+        if m0 < m1:
+            if m0 < m2:
+                return i - 1, j, m0
+            else:
+                return i - 1, j - 1, m2
+        else:
+            if m1 < m2:
+                return i, j - 1, m1
+            else:
+                return i - 1, j - 1, m2
+
+    def dtw(self):
+        x = self.search_data
+        y = self.target_data
+        self.dataDist = np.array(x).reshape(1, -1)**2 + np.array(y).reshape(-1, 1)**2
+
+        len_x = len(x)
+        len_y = len(y)
+
+        print(len_x)
+        print(len_y)
+
+        costM = np.zeros((len_x, len_y))                   # コスト行列(x と y のある2点間の距離を保存
+        distM = np.zeros((len_x, len_y, 2), int) # 距離行列(x と y の最短距離を保存)
+
+        costM[0, 0] = self.dist(x[0], y[0])
+
+        for i in range(len_x):
+            costM[i,0] = costM[i - 1, 0] + self.dist(x[i], y[0])
+            distM[i, 0] = [i-1, 0]
+
+        for j in range(1, len_y):
+            costM[0, j] = costM[0, j - 1] + self.dist(x[0], y[j])
+            distM[0, j] = [0, j - 1]
+
+        for i in range(1, len_x):
+            for j in range(1, len_y):
+                pi, pj, m = self.get_min(costM[i - 1, j],
+                                    costM[i, j - 1],
+                                    costM[i - 1, j - 1],
+                                    i, j)
+                costM[i, j] = self.dist(x[i], y[j]) + m
+                distM[i, j] = [pi, pj]
+
+        cost = costM[-1, -1]
+        
+        path = [[len_x - 1, len_y - 1]]
+        i = len_x - 1
+        j = len_y - 1
+
+        while ((distM[i, j][0] != 0) or (distM[i, j][1] != 0)):
+            path.append(distM[i, j])
+            i, j = distM[i, j].astype(int)
+        path.append([0,0])
+
+        self.path = np.array(path)
+        self.dtwDist = cost
+        self.costMatrix = costM
+
+    def partial_dtw(self):
+        x = self.search_data
+        y = self.target_data
+        self.dataDist = np.array(x).reshape(1, -1)**2 + np.array(y).reshape(-1, 1)**2
+
+        len_x = len(x)
+        len_y = len(y)
+
+        costM = np.zeros((len_x, len_y))
+        distM = np.zeros((len_x, len_y, 2), int)
+
+        costM[0, 0] = self.dist(x[0], y[0])
+        for i in range(len_x):
+            costM[i, 0] = self.dist(x[i], y[0])
+            distM[i, 0] = [0, 0]
+
+        for j in range(1, len_y):
+            costM[0, j] = costM[0, j - 1] + self.dist(x[0], y[j])
+            distM[0, j] = [0, j - 1]
+
+        for i in range(1, len_x):
+            for j in range(1, len_y):
+                pi, pj, m = self.get_min(costM[i - 1, j],
+                                    costM[i, j - 1],
+                                    costM[i - 1, j - 1],
+                                    i, j)
+                costM[i, j] = self.dist(x[i], y[j]) + m
+                distM[i, j] = [pi, pj]
+        t_end = np.argmin(costM[:,-1])
+        cost = costM[t_end, -1]
+        
+        path = [[t_end, len_y - 1]]
+        i = t_end
+        j = len_y - 1
+
+        while (distM[i, j][0] != 0 or distM[i, j][1] != 0):
+            path.append(distM[i, j])
+            i, j = distM[i, j].astype(int)
+
+        self.path = np.array(path)
+        self.dtwDist = cost
+
+    def plot_path(self):
+        paths = [np.array(self.path)]
+        A = self.search_data
+        B = self.target_data
+        D = self.dataDist
+
+        plt.figure(figsize=(5,5))
+        gs = gridspec.GridSpec(2, 2,
+                        width_ratios=[1,5],
+                        height_ratios=[5,1]
+                        )
+        ax1 = plt.subplot(gs[0])
+        ax2 = plt.subplot(gs[1])
+        ax4 = plt.subplot(gs[3])
+
+        ax2.pcolor(D, cmap=plt.cm.Blues)
+        ax2.get_xaxis().set_ticks([])
+        ax2.get_yaxis().set_ticks([])
+        
+        for path in paths:
+            ax2.plot(path[:,0]+0.5, path[:,1]+0.5, c="C3")
+        
+        ax4.plot(A)
+        ax4.set_xlabel("$X$")
+        ax1.invert_xaxis()
+        ax1.plot(B, range(len(B)), c="C1")
+        ax1.set_ylabel("$Y$")
+
+        ax2.set_xlim(0, len(A))
+        ax2.set_ylim(0, len(B))
+        plt.show()
+
+    def plot_connection(self):
+        X = self.search_data
+        Y = self.target_data
+        for line in self.path:
+            plt.plot(line, [X[line[0]], Y[line[1]]], linewidth=0.8, c="gray")
+        plt.plot(X)
+        plt.plot(Y)
+        #plt.plot(self.path[:,0], X[self.path[:,0]], c="C2")
+        plt.show()
+
+
+# 検索対象データの読み込み
 def load_targetData(targetData_dirPath):
     print("Start loading target data")
     targetData_filePath_list = glob.glob(targetData_dirPath +"*") # データのパス取得
@@ -88,6 +248,7 @@ def load_targetData(targetData_dirPath):
     
     print("Completed loading target data")
 
+# 検索データの読み込み
 def load_searchData(searchData_Path):
     if searchData_Path is not None:
         treat_TShandData = Treat_timeSeriesHandData()
@@ -96,7 +257,6 @@ def load_searchData(searchData_Path):
 
         search_Data.Velocity_TShandData_L = treat_TShandData.velocity_TShandData_L
         search_Data.Velocity_TShandData_R = treat_TShandData.velocity_TShandData_R
-    print(len(search_Data.Velocity_TShandData_L))
 
 # 指定したデータのプロットを表示
 def ctrl_plt(): 
@@ -129,7 +289,7 @@ def ctrl_plt():
                 x.append(frameNum)
                 y.append(velocity_handData[indexNum])
 
-            plt.figure("data["+ str(dataNum) +"] | hand["+ isSide +"] | label["+ query_DataBase.labels[indexNum + baseLabel] + "]")
+            plt.figure("data["+ str(dataNum) +"] | hand["+ isSide +"] | label["+ target_DataBase.labels[indexNum + baseLabel] + "]")
             plt.plot(x, y, color="steelblue")
             plt.show()
 
@@ -147,18 +307,62 @@ def ctrl_plt():
                 break 
 
 
+def test():
+    spring = Spring()
+
+    """
+    Cdata = pd.read_csv("./Cdata.csv", header=None)[1].values
+    
+    print(len(Cdata))
+
+    X = Cdata
+    Y = Cdata[100:500]
+
+    print(X)
+    print(Y)
+
+    """
+    X = []
+    Y = []
+    indexNum = 0
+
+    velocity_TShandData = search_Data.Velocity_TShandData_R
+    for frameNum, velocity_handData in enumerate(velocity_TShandData):
+        X.append(velocity_handData[indexNum])
+    
+    dataNum = 21
+    velocity_TShandData = target_DataBase.AllVelocity_TShandData_R[dataNum]
+    for frameNum, velocity_handData in enumerate(velocity_TShandData):
+        Y.append(velocity_handData[indexNum])
+
+    spring.target_data = Y
+    spring.search_data = X
+    
+    
+
+    spring.partial_dtw()
+
+    springPathLen = len(spring.path)
+    print("frame : "+ str(spring.path[springPathLen-1][0]) +" ~ "+ str(spring.path[0][0]))
+
+    spring.plot_path()
+    #spring.plot_connection()
+
+
 
 if __name__ == "__main__":
-    userDir = "C:/Users/hisa/Desktop/research/"
-    # "C:/Users/root/Desktop/hisa_reserch/"
+    #userDir = "C:/Users/hisa/Desktop/research/"
+    userDir = "C:/Users/root/Desktop/hisa_reserch/"
     tango_data_dirPath = userDir + "HandMotion_SimilarSearch/TimeSeries_HandData_part/tango/"
     bunsyo_data_dirPath = userDir + "HandMotion_SimilarSearch/TimeSeries_HandData_part/bunsyo/"
 
     target_DataBase = TargetDataBase() # データベース用意
     search_Data = SearchData()
 
-    #load_targetData(tango_data_dirPath)
+    load_targetData(tango_data_dirPath)
     load_searchData(bunsyo_data_dirPath + "4.csv")
+
+    test()
 
     #ctrl_plt()
 

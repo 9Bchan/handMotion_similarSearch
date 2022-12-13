@@ -3,14 +3,15 @@ import mediapipe as mp
 
 
 def cam_MP():
-    cap = cv2.VideoCapture("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video/tango/1.mp4")
+    cap = cv2.VideoCapture("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video_part/bunsyo/4.mp4")
     
     frame_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     frame_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
     
     isStop = 0
+    isLoop = False
     while True:
-        ret, frame = cap.read()
+        ret, frame = cap.read(0)
 
         if ret:
             frame_RGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -52,12 +53,26 @@ def cam_MP():
             
 
             cv2.imshow("MP_holistic",frame)
-        
+            print(cap.get(cv2.CAP_PROP_POS_FRAMES))
 
             
             key = cv2.waitKey(isStop)
             if key & 0xFF == ord('s'):
-                isStop = 1
+                if isStop == 0:
+                    isStop = 1
+                elif isStop == 1:
+                    isStop = 0
+            
+            if key & 0xFF == ord('p'):
+                startFrame = int(input("start frame?"))
+                endFrame = int(input("end frame?"))
+                cap.set(cv2.CAP_PROP_POS_FRAMES, startFrame)
+
+                isLoop = True
+            if isLoop:
+                if cap.get(cv2.CAP_PROP_POS_FRAMES) > endFrame:
+                    cap.set(cv2.CAP_PROP_POS_FRAMES, startFrame)
+            
             if key & 0xFF == ord('q'):
                 break
     
