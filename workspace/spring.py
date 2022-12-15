@@ -8,7 +8,13 @@ import matplotlib.gridspec as gridspec
 import numpy as np
 import pandas as pd
 
+FRAME_WIDTH = 1920
+FRAME_HEIGHT = 1036
 
+class SearchData():
+    def __init__(self):
+        self.Velocity_TShandData_L = None # Velocity_TShandData_L[データ名][フレーム][要素(0~41)]
+        self.Velocity_TShandData_R = None
 
 # 検索対象データ登録用クラス
 class TargetDataBase():
@@ -18,10 +24,54 @@ class TargetDataBase():
         self.AllDataNum = []
         self.labels = None
 
-class SearchData():
-    def __init__(self):
-        self.Velocity_TShandData_L = None # Velocity_TShandData_L[データ名][フレーム][要素(0~41)]
-        self.Velocity_TShandData_R = None
+    # データのグラフを表示
+    def plt_originalData(): 
+        print("Displays a plot of the specified data")
+        isCont = True
+        baseLabel = 0 # ラベル指定の調整用(左右について)
+
+        while isCont:
+            try:
+                # データ指定フロー
+                isSide = input("Left of Right <l/r> -> ")
+                if not isSide == "l" and not isSide == "r":
+                    print(1/0) # 例外判定用
+
+                dataNum = int(input("The data number is -> "))
+                if isSide == "l":
+                    velocity_TShandData = target_DataBase.AllVelocity_TShandData_L[dataNum]
+                if isSide == "r":
+                    baseLabel = 42
+                    velocity_TShandData= target_DataBase.AllVelocity_TShandData_R[dataNum]
+
+                indexNum = int(input("The index number is <0~41> -> "))
+                if not 0 <= indexNum <= 41:
+                    print(1/0) # 例外判定用
+
+                # プロット用データ処理
+                x = []
+                y = []
+                for frameNum, velocity_handData in enumerate(velocity_TShandData):
+                    x.append(frameNum)
+                    y.append(velocity_handData[indexNum])
+
+                plt.figure("data["+ str(dataNum) +"] | hand["+ isSide +"] | label["+ target_DataBase.labels[indexNum + baseLabel] + "]")
+                plt.plot(x, y, color="steelblue")
+                plt.show()
+
+            except:
+                print("Invalid value entered")
+
+            # 継続判定
+            while True:
+                ans = str(input("Do you want to run again? <y/n> ->"))
+                if ans  == 'y':
+                    break
+                if ans == 'n':
+                    print("exit the [ctrl_plot]")
+                    isCont = False
+                    break 
+
 
 # csvデータ処理用クラス
 class Treat_timeSeriesHandData():
@@ -33,6 +83,8 @@ class Treat_timeSeriesHandData():
         self.velocity_TShandData_L = [] # 速度データ推移
         self.velocity_TShandData_R = []
         self.labels = None
+        self.frameWidth = FRAME_WIDTH
+        self.frameHeight = FRAME_HEIGHT
 
     def arrangement(self, handData_filePath): # 問い合わせ用csvデータ読み込み
         with open(handData_filePath, newline='') as f:
@@ -46,6 +98,7 @@ class Treat_timeSeriesHandData():
             for frame_TShandData in timeSeries_handData[1:]:
                 frame_handData_L = frame_TShandData[:21*2] # 単位フレームにおけるハンドデータを左右に分割
                 frame_handData_R = frame_TShandData[21*2:]
+                
                 
                 if not frame_handData_L[0] == 'None' and not frame_handData_R[0] == 'None': #そのフレームにおいて両手が検出されていればリストに追加
                     frame_handData_L_float = [float(i) for i in frame_handData_L] # 要素をstrからfloatに変換
@@ -63,23 +116,33 @@ class Treat_timeSeriesHandData():
                 velocity_handData_L = []
                 velocity_handData_R = []
                 for index_num in range(self.totalIndex): # 単位フレームのデータ要素数分ループ
-                    velocity_handData_L.append(self.position_TShandData_L[frame_num][index_num] - self.position_TShandData_L[frame_num][index_num - 1])
-                    velocity_handData_R.append(self.position_TShandData_R[frame_num][index_num] - self.position_TShandData_R[frame_num][index_num - 1])
+                    #　正規化値をピクセル値に直すための係数
+                    if index_num/2 :
+                        frame_coef = self.frameWidth
+                    else:
+                        frame_coef = self.frameHeight
+
+                    velocity_handData_L.append(self.position_TShandData_L[frame_num][index_num]*frame_coef - self.position_TShandData_L[frame_num][index_num - 1]*frame_coef)
+                    velocity_handData_R.append(self.position_TShandData_R[frame_num][index_num]*frame_coef - self.position_TShandData_R[frame_num][index_num - 1]*frame_coef)
                 self.velocity_TShandData_L.append(velocity_handData_L)
                 self.velocity_TShandData_R.append(velocity_handData_R)
+    
+    
 
-class Spring():
+class UseSpring():
     def __init__(self):
         self.search_data = None # search data
-        self.target_data = None # target data
-        self.path = None        
+        self.target_data = None # target data   
+        self.paths = []   
+        self.costs = [] 
         self.dataDist = None
         self.dtwDist = None
         self.costMatrix = None
+        self.PATH_TH = None
     
     # 距離計算
-    def dist(self,x,y):
-        return (x-y)**2
+    def get_dist(self,x,y):
+        return np.sqrt((x-y)**2)
 
     # 最小値返却
     def get_min(self, m0, m1, m2, i, j):
@@ -94,7 +157,8 @@ class Spring():
             else:
                 return i - 1, j - 1, m2
 
-    def dtw(self):
+
+    def spring(self):
         x = self.search_data
         y = self.target_data
         self.dataDist = np.array(x).reshape(1, -1)**2 + np.array(y).reshape(-1, 1)**2
@@ -102,92 +166,79 @@ class Spring():
         len_x = len(x)
         len_y = len(y)
 
-        print(len_x)
-        print(len_y)
+        costM = np.zeros((len_x, len_y))            # 合計距離行列 各点におけるパス開始点までの最短合計コストを保存
+        linkM = np.zeros((len_x, len_y, 2), int)    # パス連結行列 各点において，その点を通るパスのひとつ前の点を保存
+        sectM = np.zeros((len_x, len_y), int)       # パス開始点行列 各点において，その点を通るパスの開始点を保存
 
-        costM = np.zeros((len_x, len_y))                   # コスト行列(x と y のある2点間の距離を保存
-        distM = np.zeros((len_x, len_y, 2), int) # 距離行列(x と y の最短距離を保存)
 
-        costM[0, 0] = self.dist(x[0], y[0])
-
-        for i in range(len_x):
-            costM[i,0] = costM[i - 1, 0] + self.dist(x[i], y[0])
-            distM[i, 0] = [i-1, 0]
+        costM[0, 0] = self.get_dist(x[0], y[0])
 
         for j in range(1, len_y):
-            costM[0, j] = costM[0, j - 1] + self.dist(x[0], y[j])
-            distM[0, j] = [0, j - 1]
+            costM[0, j] = costM[0, j - 1] + self.get_dist(x[0], y[j])
+            linkM[0, j] = [0, j - 1]
+            sectM[0, j] = sectM[0, j - 1]
 
         for i in range(1, len_x):
+            costM[i, 0] = self.get_dist(x[i], y[0])
+            linkM[i, 0] = [0, 0]
+            sectM[i, 0] = i
+
+
+
             for j in range(1, len_y):
                 pi, pj, m = self.get_min(costM[i - 1, j],
                                     costM[i, j - 1],
                                     costM[i - 1, j - 1],
                                     i, j)
-                costM[i, j] = self.dist(x[i], y[j]) + m
-                distM[i, j] = [pi, pj]
+                costM[i, j] = self.get_dist(x[i], y[j]) + m
+                linkM[i, j] = [pi, pj]
+                sectM[i, j] = sectM[pi,pj]
 
-        cost = costM[-1, -1]
-        
-        path = [[len_x - 1, len_y - 1]]
-        i = len_x - 1
-        j = len_y - 1
 
-        while ((distM[i, j][0] != 0) or (distM[i, j][1] != 0)):
-            path.append(distM[i, j])
-            i, j = distM[i, j].astype(int)
-        path.append([0,0])
+            imin = np.argmin(costM[:(i+1), -1])
+            dmin = costM[imin, -1]
 
-        self.path = np.array(path)
-        self.dtwDist = cost
-        self.costMatrix = costM
+            if dmin > self.PATH_TH: # 累算コストしきい値より小さい場合のみ　以降のパス出力コードを実行
+                continue
 
-    def partial_dtw(self):
-        x = self.search_data
-        y = self.target_data
-        self.dataDist = np.array(x).reshape(1, -1)**2 + np.array(y).reshape(-1, 1)**2
-
-        len_x = len(x)
-        len_y = len(y)
-
-        costM = np.zeros((len_x, len_y))
-        distM = np.zeros((len_x, len_y, 2), int)
-
-        costM[0, 0] = self.dist(x[0], y[0])
-        for i in range(len_x):
-            costM[i, 0] = self.dist(x[i], y[0])
-            distM[i, 0] = [0, 0]
-
-        for j in range(1, len_y):
-            costM[0, j] = costM[0, j - 1] + self.dist(x[0], y[j])
-            distM[0, j] = [0, j - 1]
-
-        for i in range(1, len_x):
             for j in range(1, len_y):
-                pi, pj, m = self.get_min(costM[i - 1, j],
-                                    costM[i, j - 1],
-                                    costM[i - 1, j - 1],
-                                    i, j)
-                costM[i, j] = self.dist(x[i], y[j]) + m
-                distM[i, j] = [pi, pj]
-        t_end = np.argmin(costM[:,-1])
-        cost = costM[t_end, -1]
-        
-        path = [[t_end, len_y - 1]]
-        i = t_end
-        j = len_y - 1
+                if (costM[i,j] < dmin) and (sectM[i, j] < imin):
+                    break
+            
+            else:
+                path = [[imin, len_y - 1]]
+                temp_i = imin
+                temp_j = len_y - 1
 
-        while (distM[i, j][0] != 0 or distM[i, j][1] != 0):
-            path.append(distM[i, j])
-            i, j = distM[i, j].astype(int)
+                while (linkM[temp_i, temp_j][0] != 0 or linkM[temp_i, temp_j][1] != 0):
+                    path.append(linkM[temp_i, temp_j])
+                    temp_i, temp_j = linkM[temp_i, temp_j].astype(int)
+                
+                costM[sectM <= imin] = 10000000000000
 
-        self.path = np.array(path)
-        self.dtwDist = cost
+                self.paths.append(np.array(path))
+                self.costs.append(dmin)
+
+
+    def plot_spring(self):
+        X = self.search_data
+        Y = self.target_data
+        for path in self.paths:
+            for line in path:
+                plt.plot(line, [X[line[0]], Y[line[1]]], linewidth=0.8, c="gray")
+            plt.plot(X)
+            plt.plot(Y)
+            plt.plot(path[:,0], X[path[:,0]], C="C2")
+            plt.show()
+
+
 
     def plot_path(self):
-        paths = [np.array(self.path)]
-        A = self.search_data
-        B = self.target_data
+        paths = self.paths
+        costs = self.costs
+
+        x = self.search_data
+        y = self.target_data
         D = self.dataDist
 
         plt.figure(figsize=(5,5))
@@ -203,17 +254,19 @@ class Spring():
         ax2.get_xaxis().set_ticks([])
         ax2.get_yaxis().set_ticks([])
         
-        for path in paths:
+        for pathNum, path in enumerate(paths):
             ax2.plot(path[:,0]+0.5, path[:,1]+0.5, c="C3")
+            springPathLen = len(path)
+            print("frame : "+ str(path[springPathLen-1][0]) +" ~ "+ str(path[0][0]) + " | cost : " + str(costs[pathNum]))
         
-        ax4.plot(A)
+        ax4.plot(x)
         ax4.set_xlabel("$X$")
         ax1.invert_xaxis()
-        ax1.plot(B, range(len(B)), c="C1")
+        ax1.plot(y, range(len(y)), c="C1")
         ax1.set_ylabel("$Y$")
 
-        ax2.set_xlim(0, len(A))
-        ax2.set_ylim(0, len(B))
+        ax2.set_xlim(0, len(x))
+        ax2.set_ylim(0, len(y))
         plt.show()
 
     def plot_connection(self):
@@ -259,56 +312,10 @@ def load_searchData(searchData_Path):
         search_Data.Velocity_TShandData_R = treat_TShandData.velocity_TShandData_R
 
 # 指定したデータのプロットを表示
-def ctrl_plt(): 
-    print("Displays a plot of the specified data")
-    isCont = True
-    baseLabel = 0 # ラベル指定の調整用(左右について)
-
-    while isCont:
-        try:
-            # データ指定フロー
-            isSide = input("Left of Right <l/r> -> ")
-            if not isSide == "l" and not isSide == "r":
-                print(1/0) # 例外判定用
-
-            dataNum = int(input("The data number is -> "))
-            if isSide == "l":
-                velocity_TShandData = target_DataBase.AllVelocity_TShandData_L[dataNum]
-            if isSide == "r":
-                baseLabel = 42
-                velocity_TShandData= target_DataBase.AllVelocity_TShandData_R[dataNum]
-
-            indexNum = int(input("The index number is <0~41> -> "))
-            if not 0 <= indexNum <= 41:
-                print(1/0) # 例外判定用
-
-            # プロット用データ処理
-            x = []
-            y = []
-            for frameNum, velocity_handData in enumerate(velocity_TShandData):
-                x.append(frameNum)
-                y.append(velocity_handData[indexNum])
-
-            plt.figure("data["+ str(dataNum) +"] | hand["+ isSide +"] | label["+ target_DataBase.labels[indexNum + baseLabel] + "]")
-            plt.plot(x, y, color="steelblue")
-            plt.show()
-
-        except:
-            print("Invalid value entered")
-
-        # 継続判定
-        while True:
-            ans = str(input("Do you want to run again? <y/n> ->"))
-            if ans  == 'y':
-                break
-            if ans == 'n':
-                print("exit the [ctrl_plot]")
-                isCont = False
-                break 
 
 
-def test():
-    spring = Spring()
+def execute():
+    use_spring = UseSpring()
 
     """
     Cdata = pd.read_csv("./Cdata.csv", header=None)[1].values
@@ -326,6 +333,7 @@ def test():
     Y = []
     indexNum = 0
 
+    
     velocity_TShandData = search_Data.Velocity_TShandData_R
     for frameNum, velocity_handData in enumerate(velocity_TShandData):
         X.append(velocity_handData[indexNum])
@@ -335,26 +343,26 @@ def test():
     for frameNum, velocity_handData in enumerate(velocity_TShandData):
         Y.append(velocity_handData[indexNum])
 
-    spring.target_data = Y
-    spring.search_data = X
+
+    use_spring.target_data = Y
+    use_spring.search_data = X
+    use_spring.PATH_TH = 1090
     
     
 
-    spring.partial_dtw()
+    use_spring.spring()
 
-    springPathLen = len(spring.path)
-    print("frame : "+ str(spring.path[springPathLen-1][0]) +" ~ "+ str(spring.path[0][0]))
 
-    spring.plot_path()
-    #spring.plot_connection()
+    use_spring.plot_path()
+    #use_spring.plot_connection()
 
 
 
 if __name__ == "__main__":
     #userDir = "C:/Users/hisa/Desktop/research/"
     userDir = "C:/Users/root/Desktop/hisa_reserch/"
-    tango_data_dirPath = userDir + "HandMotion_SimilarSearch/TimeSeries_HandData_part/tango/"
-    bunsyo_data_dirPath = userDir + "HandMotion_SimilarSearch/TimeSeries_HandData_part/bunsyo/"
+    tango_data_dirPath = userDir + "HandMotion_SimilarSearch/TimeSeries_HandData_part_normalized/tango/"
+    bunsyo_data_dirPath = userDir + "HandMotion_SimilarSearch/TimeSeries_HandData_part_normalized/bunsyo/"
 
     target_DataBase = TargetDataBase() # データベース用意
     search_Data = SearchData()
@@ -362,8 +370,6 @@ if __name__ == "__main__":
     load_targetData(tango_data_dirPath)
     load_searchData(bunsyo_data_dirPath + "4.csv")
 
-    test()
+    execute()
 
-    #ctrl_plt()
-
-    #a
+    #plt_originalData()

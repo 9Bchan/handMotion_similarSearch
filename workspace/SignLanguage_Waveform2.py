@@ -15,6 +15,8 @@ class MPdata():
         self.fixedSize_R = []
         self.HandPosition_L = None
         self.HandPosition_R = None
+        self.frameWidth = None
+        self.frameHeight = None
         self.fromWrist_Nones = [[None,None],[None,None],[None,None],[None,None],[None,None],
                                 [None,None],[None,None],[None,None],[None,None],[None,None],
                                 [None,None],[None,None],[None,None],[None,None],[None,None],
@@ -72,7 +74,9 @@ def waveform_handdata(videoPath, videoName):
     while True:
         mp_data = MPdata()
         ret, frame = cap.read()
-        
+
+        mp_data.frameWidth = frame_width
+        mp_data.frameHeight = frame_height
 
         if ret:
             if isCam:
@@ -222,7 +226,7 @@ def outputCsv_TimeSeries_HandData(videoName ,TimeSeries_HandData):
 
 if __name__ == "__main__":
     tango_videoPath_dir = "C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video/tango/"
-    output_dir = "C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/TimeSeries_HandData/tango/"
+    output_dir = "C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/TimeSeries_HandData/bunsyo/"
 
     #MediaPipe周辺設定
     mp_drawing = mp.solutions.drawing_utils

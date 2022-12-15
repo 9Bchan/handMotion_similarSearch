@@ -7,11 +7,16 @@ def cam_MP():
     
     frame_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     frame_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+
+
+    print(frame_width)
+    print(frame_height)
     
     isStop = 0
     isLoop = False
     while True:
         ret, frame = cap.read(0)
+        
 
         if ret:
             frame_RGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -42,6 +47,7 @@ def cam_MP():
             if holistic_results.left_hand_landmarks is not None:
                 leftHand_randmarks = holistic_results.left_hand_landmarks.landmark
                 leftWrist_randmarks = leftHand_randmarks[0]
+
                 cv2.putText(frame,
                             text='L',
                             org=(int(leftWrist_randmarks.x*frame_width), int(leftWrist_randmarks.y*frame_height)),
@@ -53,7 +59,7 @@ def cam_MP():
             
 
             cv2.imshow("MP_holistic",frame)
-            print(cap.get(cv2.CAP_PROP_POS_FRAMES))
+            #print(cap.get(cv2.CAP_PROP_POS_FRAMES))
 
             
             key = cv2.waitKey(isStop)
