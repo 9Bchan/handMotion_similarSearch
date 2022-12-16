@@ -100,7 +100,7 @@ class Treat_timeSeriesHandData():
                 frame_handData_R = frame_TShandData[21*2:]
                 
                 
-                if not frame_handData_L[0] == 'None' and not frame_handData_R[0] == 'None': #そのフレームにおいて両手が検出されていればリストに追加
+                if frame_handData_L[0] != 'None' and  frame_handData_R[0] != 'None': #そのフレームにおいて両手が検出されていればリストに追加
                     frame_handData_L_float = [float(i) for i in frame_handData_L] # 要素をstrからfloatに変換
                     frame_handData_R_float = [float(i) for i in frame_handData_R]
                     self.position_TShandData_L.append(frame_handData_L_float)
@@ -122,8 +122,8 @@ class Treat_timeSeriesHandData():
                     else:
                         frame_coef = self.frameHeight
 
-                    velocity_handData_L.append(self.position_TShandData_L[frame_num][index_num]*frame_coef - self.position_TShandData_L[frame_num][index_num - 1]*frame_coef)
-                    velocity_handData_R.append(self.position_TShandData_R[frame_num][index_num]*frame_coef - self.position_TShandData_R[frame_num][index_num - 1]*frame_coef)
+                    velocity_handData_L.append(self.position_TShandData_L[frame_num][index_num]*frame_coef - self.position_TShandData_L[frame_num - 1 ][index_num]*frame_coef)
+                    velocity_handData_R.append(self.position_TShandData_R[frame_num][index_num]*frame_coef - self.position_TShandData_R[frame_num - 1 ][index_num]*frame_coef)
                 self.velocity_TShandData_L.append(velocity_handData_L)
                 self.velocity_TShandData_R.append(velocity_handData_R)
     
@@ -139,6 +139,7 @@ class UseSpring():
         self.dtwDist = None
         self.costMatrix = None
         self.PATH_TH = None
+        self.FRAME_TH = None
     
     # 距離計算
     def get_dist(self,x,y):
@@ -165,6 +166,7 @@ class UseSpring():
 
         len_x = len(x)
         len_y = len(y)
+        print(len_y)
 
         costM = np.zeros((len_x, len_y))            # 合計距離行列 各点におけるパス開始点までの最短合計コストを保存
         linkM = np.zeros((len_x, len_y, 2), int)    # パス連結行列 各点において，その点を通るパスのひとつ前の点を保存
@@ -214,8 +216,22 @@ class UseSpring():
                     path.append(linkM[temp_i, temp_j])
                     temp_i, temp_j = linkM[temp_i, temp_j].astype(int)
                 
-                costM[sectM <= imin] = 10000000000000
+                costM[sectM <= imin] = 100000000
 
+                
+                original_path = np.array(path)
+
+                path_head = original_path[0]
+                #print(len(original_path))
+                #print(len_y - 1)
+
+                path_tail = original_path[len(original_path) - 1]
+                #path_tail = original_path[len_y - 1]
+                #print(len_y)
+
+                #print((path_head[0] - path_tail[0]))
+
+                #if int((path_head[0] - path_tail[0])) > self.FRAME_TH: # パスが指定フレーム数をまたがないときは出力しない
                 self.paths.append(np.array(path))
                 self.costs.append(dmin)
 
@@ -230,8 +246,6 @@ class UseSpring():
             plt.plot(Y)
             plt.plot(path[:,0], X[path[:,0]], C="C2")
             plt.show()
-
-
 
     def plot_path(self):
         paths = self.paths
@@ -278,7 +292,6 @@ class UseSpring():
         plt.plot(Y)
         #plt.plot(self.path[:,0], X[self.path[:,0]], c="C2")
         plt.show()
-
 
 # 検索対象データの読み込み
 def load_targetData(targetData_dirPath):
@@ -331,7 +344,7 @@ def execute():
     """
     X = []
     Y = []
-    indexNum = 0
+    indexNum = 1
 
     
     velocity_TShandData = search_Data.Velocity_TShandData_R
@@ -341,13 +354,15 @@ def execute():
     dataNum = 21
     velocity_TShandData = target_DataBase.AllVelocity_TShandData_R[dataNum]
     for frameNum, velocity_handData in enumerate(velocity_TShandData):
+        #print(velocity_handData[indexNum])
         Y.append(velocity_handData[indexNum])
 
+    print(Y)
 
     use_spring.target_data = Y
     use_spring.search_data = X
-    use_spring.PATH_TH = 1090
-    
+    use_spring.PATH_TH = 30000
+    use_spring.FRAME_TH = 5
     
 
     use_spring.spring()
