@@ -3,14 +3,17 @@ import mediapipe as mp
 
 
 def cam_MP():
-    cap = cv2.VideoCapture("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video_part/tango/33.mp4")
+    cap = cv2.VideoCapture("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video_part/bunsyo/4.mp4")
+    #"C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video_part/tango/33.mp4"
     
     frame_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     frame_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    totalFrame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
 
-    print(frame_width)
-    print(frame_height)
+    print("frame width : "+ str(frame_width))
+    print("frame height : "+str(frame_height))
+    print("total frame : "+str(totalFrame))
     
     isStop = 0
     isLoop = False

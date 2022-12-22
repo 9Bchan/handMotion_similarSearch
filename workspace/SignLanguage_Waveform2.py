@@ -4,20 +4,24 @@ import csv
 import glob
 import os
 
+ALL_JOINT_NUM = 21
+
 #Mediapipe検出データ処理
 class MPdata():
     def __init__(self):
         self.hand_L = None
         self.hand_R = None
+        self.handPositions_L = []
+        self.handPositions_R = []
         self.fromWrist_L = []
         self.fromWrist_R = []
         self.fixedSize_L = []
         self.fixedSize_R = []
-        self.HandPosition_L = None
-        self.HandPosition_R = None
+        self.HandPosition_L = []
+        self.HandPosition_R = []
         self.frameWidth = None
         self.frameHeight = None
-        self.fromWrist_Nones = [[None,None],[None,None],[None,None],[None,None],[None,None],
+        self.Nones = [[None,None],[None,None],[None,None],[None,None],[None,None],
                                 [None,None],[None,None],[None,None],[None,None],[None,None],
                                 [None,None],[None,None],[None,None],[None,None],[None,None],
                                 [None,None],[None,None],[None,None],[None,None],[None,None],[None,None]]
@@ -60,6 +64,22 @@ class MPdata():
                 else:
                     self.fromWrist_R.append([joint.x - wrist_joint[0], joint.y - wrist_joint[1]])
     
+    def pickPositionsData(self):
+        if self.hand_L is not None:
+            for joint in self.hand_L:
+                self.handPositions_L.append(str(joint.x))
+                self.handPositions_L.append(str(joint.y))
+        else:
+            for jointNum in range(ALL_JOINT_NUM*2):
+                self.handPositions_L.append('None')
+        if self.hand_R is not None:
+            for joint in self.hand_R:
+                self.handPositions_R.append(str(joint.x))
+                self.handPositions_R.append(str(joint.y))
+        else:
+            for jointNum in range(ALL_JOINT_NUM*2):
+                self.handPositions_R.append('None')
+    
 
 
 
@@ -70,6 +90,8 @@ def waveform_handdata(videoPath, videoName):
     frame_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
     TimeSeries_HandData =[] # TimeSeries_HandData[ フレーム番号 ][ 左or右 ][ ベクトル(0~20) <- 0は手首座標 ][ 成分(x,y) ]
+
+    frameNum = 1
 
     while True:
         mp_data = MPdata()
@@ -94,29 +116,25 @@ def waveform_handdata(videoPath, videoName):
             mp_data.MPdataOrganization(hand_results.multi_handedness,
                                         hand_results.multi_hand_landmarks)"""
             #手首座標系データ作成"""
-            mp_data.WristCoordinateSystem()
-
+            #mp_data.WristCoordinateSystem()
+            mp_data.pickPositionsData()
 
             
 
             frameData = []
-            if mp_data.hand_L is not None:
-                frameData.append(mp_data.fromWrist_L)
-            else:
-                frameData.append(mp_data.fromWrist_Nones)
-
-            if mp_data.hand_R is not None:
-                frameData.append(mp_data.fromWrist_R)
-            else:
-                frameData.append(mp_data.fromWrist_Nones)
-            
+            frameData.append(str(frameNum))
+            frameData.extend(mp_data.handPositions_L)
+            frameData.extend(mp_data.handPositions_R)
+            #print(frameData)
+            #rint("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+            #os.sys.exit()
             TimeSeries_HandData.append(frameData)
 
 
             #print(frameData)
             #print("\n")
 
-
+            
             #描画関連処理
             if isDraw:
                 #手の関節描画
@@ -146,10 +164,12 @@ def waveform_handdata(videoPath, videoName):
 
             cv2.imshow("linedFrame", frame)
             cv2.moveWindow("linedFrame", 0, 0)
+            frameNum = frameNum + 1
 
             #キーボード入力処理
             key = cv2.waitKey(1)
             if key & 0xFF == ord('q'):
+                os.sys.exit()
                 break
         
         else:
@@ -173,7 +193,7 @@ def createAll_waveform_handdata():
         all_waveform_handdata.append([videoName])
         waveform_handdata(tango_videoPath, videoName)
     
-    outputFile = open("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/TimeSeries_HandData/all_bunsyo_data.csv", 'w', newline='')
+    outputFile = open("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/TimeSeries_HandPositionData/all_bunsyo_data.csv", 'w', newline='')
     writer = csv.writer(outputFile)
     writer.writerows(all_waveform_handdata)
     outputFile.close()
@@ -189,33 +209,10 @@ def outputCsv_TimeSeries_HandData(videoName ,TimeSeries_HandData):
     outputFile_Path = output_dir + videoName + ".csv"
     outputFile = open(outputFile_Path, 'w', newline='')
     outputData = []
-    noneData = None
-    historicalData = [[None,None],[None,None],[None,None],[None,None],[None,None],
-                    [None,None],[None,None],[None,None],[None,None],[None,None],
-                    [None,None],[None,None],[None,None],[None,None],[None,None],
-                    [None,None],[None,None],[None,None],[None,None],[None,None],[None,None]]
-    labels = ["Lwrist_x","wrist_y","1x","1y","2x","2y","3x","3y","4x","4y","5x","5y","6x","6y","7x","7y","8x","8y","9x","9y","10x","10y","11x","11y","12x","12y","13x","13y","14x","14y","15x","15y","16x","16y","17x","17y","18x","18y","19x","19y","20x","20y",
-            "Rwrist_x","wrist_y","1x","1y","2x","2y","3x","3y","4x","4y","5x","5y","6x","6y","7x","7y","8x","8y","9x","9y","10x","10y","11x","11y","12x","12y","13x","13y","14x","14y","15x","15y","16x","16y","17x","17y","18x","18y","19x","19y","20x","20y"]
+    labels = ["frame","[L] 0X","0y","1x","1y","2x","2y","3x","3y","4x","4y","5x","5y","6x","6y","7x","7y","8x","8y","9x","9y","10x","10y","11x","11y","12x","12y","13x","13y","14x","14y","15x","15y","16x","16y","17x","17y","18x","18y","19x","19y","20x","20y",
+            "[R] 0x","0y","1x","1y","2x","2y","3x","3y","4x","4y","5x","5y","6x","6y","7x","7y","8x","8y","9x","9y","10x","10y","11x","11y","12x","12y","13x","13y","14x","14y","15x","15y","16x","16y","17x","17y","18x","18y","19x","19y","20x","20y"]
     outputData.append(labels)
-    for frame_HandData in TimeSeries_HandData:
-        output_row = [] # 位置調整
-        
-        for OneHandData in frame_HandData:
-            jointNum = 0 # 0 or 1~20
-            for jointData in OneHandData:
-                axisNum = 0 # 0 or 1
-                for axisData in jointData:
-                    if axisData is None:
-                        output_row.append(str(historicalData[jointNum][axisNum]))
-                    else:
-                        output_row.append(str(axisData))
-                        historicalData[jointNum][axisNum] = axisData
-                    axisNum = axisNum + 1
-                jointNum = jointNum + 1
-            #output_row.append("") # 位置調整
-        outputData.append(output_row) #フレーム毎に追加
-        all_waveform_handdata.append(output_row)
-
+    outputData.extend(TimeSeries_HandData)
 
     writer = csv.writer(outputFile)
     writer.writerows(outputData)
@@ -225,8 +222,9 @@ def outputCsv_TimeSeries_HandData(videoName ,TimeSeries_HandData):
 
 
 if __name__ == "__main__":
-    tango_videoPath_dir = "C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video/tango/"
-    output_dir = "C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/TimeSeries_HandData/bunsyo/"
+    
+    tango_videoPath_dir = "C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video/bunsyo/"
+    output_dir = "C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/TimeSeries_HandPositionData/bunsyo/"
 
     #MediaPipe周辺設定
     mp_drawing = mp.solutions.drawing_utils
@@ -255,8 +253,8 @@ if __name__ == "__main__":
             static_image_mode=False,        # 静止画:True 動画:False
             #UPPER_BODY_ONLY=True,           # 上半身のみ:True 全身:False
             smooth_landmarks=True,          # ジッターを減らすかどうか
-            min_detection_confidence=0.5,
-            min_tracking_confidence=0.5)
+            min_detection_confidence=0.7,
+            min_tracking_confidence=0.7)
 
     isDraw = True
     isVecsum = True
