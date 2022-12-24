@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np
 import pandas as pd
+import time
 
 FRAME_WIDTH = 1920
 FRAME_HEIGHT = 1036
@@ -15,7 +16,9 @@ class SearchData():
     def __init__(self):
         self.Velocity_TShandData_L = None # Velocity_TShandData_L[データ名][フレーム][要素(0~41)]
         self.Velocity_TShandData_R = None
-        self.usedFrames =None
+        self.usedFrames = None # 処理に利用されたフレームを記録 (検出が不十分なフレームは除外される)
+        self.totalFrame = None
+        self.totalElem = None # データの要素数
 
 # 検索対象データ登録用クラス
 class TargetDataBase():
@@ -79,12 +82,12 @@ class Treat_timeSeriesHandData():
     def __init__(self):
         self.totalFrame= None # 総フレーム数
         self.totalIndex = None # 単位フレームにおけるデータの要素数
-        self.usedFrames =[]
+        self.usedFrames =[] # 処理に利用されたフレームを記録 (検出が不十分なフレームは除外される)
         self.position_TShandData_L = [] # 位置データ推移
         self.position_TShandData_R = []
         self.velocity_TShandData_L = [] # 速度データ推移
         self.velocity_TShandData_R = []
-        self.labels = None
+        self.labels = None 
         self.frameWidth = FRAME_WIDTH
         self.frameHeight = FRAME_HEIGHT
 
@@ -97,8 +100,10 @@ class Treat_timeSeriesHandData():
             if self.labels is None:
                 self.labels = labelsData
 
+            self.totalFrame = len(timeSeries_handData[1:])
+            
             for frame_TShandData in timeSeries_handData[1:]:
-                frame_data = frame_TShandData[:1]
+                frame_data = frame_TShandData[:1] # 先頭データにはフレーム番号
                 frame_handData_L = frame_TShandData[1:21*2+1] # 単位フレームにおけるハンドデータを左右に分割
                 frame_handData_R = frame_TShandData[21*2+1:]
                 
@@ -110,12 +115,12 @@ class Treat_timeSeriesHandData():
                     self.position_TShandData_L.append(frame_handData_L_float)
                     self.position_TShandData_R.append(frame_handData_R_float)
             
-            self.totalFrame = len(self.position_TShandData_L)
+            #self.totalFrame = len(self.position_TShandData_L)
             self.totalIndex = len(self.position_TShandData_L[0])
                 
     
     def calc_frameDifference(self): # フレームの差をとりデータのフレーム速度推移を求める
-        for frame_num in range(self.totalFrame): # 左右のpositionリストの大きさは同じ フレーム数分ループ
+        for frame_num in range(len(self.usedFrames)): # 左右のpositionリストの大きさは同じ フレーム数分ループ
             if not frame_num == 0: # 最初のフレームのみ除外
                 velocity_handData_L = []
                 velocity_handData_R = []
@@ -147,6 +152,8 @@ class UseSpring():
         self.PATH_TH = None
         self.FRAME_TH = None
         self.dataCost = None
+
+        self.pathsAndCostData = [] # [パス開始フレーム, パス終了フレーム, コスト]*パス数 のデータセットを保存
     
     # 距離計算
     def get_dist(self,x,y):
@@ -250,56 +257,84 @@ class UseSpring():
 
 
     def mySpring(self):
-        x = self.search_data
-        y = self.target_data
-        self.dataDist = np.sqrt((np.array(x).reshape(1, -1) - np.array(y).reshape(-1, 1))**2)
+        a = self.search_data
+        b = self.target_data
+        self.dataDist = np.sqrt((np.array(a).reshape(1, -1) - np.array(b).reshape(-1, 1))**2)
 
-        len_x = len(x)
-        len_y = len(y)
+        len_a = len(a)
+        len_b = len(b)
 
-        D = np.zeros((len_x, len_y)) # コスト行列
-        S = np.zeros((len_x, len_y), int) # パス開始点伝搬行列 (フレーム番号)
+        D = np.zeros((len_a, len_b)) # コスト行列
+        S = np.zeros((len_a, len_b), int) # パス開始点伝搬行列 (フレーム番号)
 
-        D_link = np.zeros((len_x, len_y, 2), int) # コスト行列要素行列 コスト計算時の際，参照された要素を記録
+        D_link = np.zeros((len_a, len_b, 2), int) # コスト行列要素行列 コスト計算時の際，参照された要素を記録
+        paths_st = [0] # 出力予定のパスのフレーム位置を記録
 
-        D[0, 0] = self.get_dist(x[0], y[0])
+        D[0, 0] = self.get_dist(a[0], b[0])
 
-        for j in range(1, len_y):
-            D[0, j] = D[0, j - 1] + self.get_dist(x[0], y[j])
+        for j in range(1, len_b):
+            D[0, j] = D[0, j - 1] + self.get_dist(a[0], b[j])
             D_link[0, j] = [0, j - 1]
             #S[0, j] = S[0, j - 1]
 
-        for t in range(1, len_x):
-            D[t, 0] = self.get_dist(x[t], y[0])
+        for t in range(1, len_a):
+            D[t, 0] = self.get_dist(a[t], b[0])
             D_link[t, 0] = [0, 0]
             S[t, 0] = t
 
-            for j in range(1, len_y):
+            for j in range(1, len_b):
                     pi, pj, m = self.get_min(D[t - 1, j],
                                         D[t, j - 1],
                                         D[t - 1, j - 1],
                                         t, j)
-                    D[t, j] = self.get_dist(x[t], y[j]) + m
+                    D[t, j] = self.get_dist(a[t], b[j]) + m
                     D_link[t, j] = [pi, pj]
                     S[t, j] = S[pi,pj]
 
-            path_st = S[t, -1]
+            #''' 出力パス制限ルート
+            # 開始地点が重複するパスのうち最小コストであるパスを選定
+            if S[t, -1] == S[paths_st[-1], -1] and D[t, -1] < D[paths_st[-1], -1]: # paths_stに最後に登録されているパスについて、開始地点が同じかつ、コストがより低いパスがあればpaths_stを更新
+                paths_st[-1] = t
+            if S[t, -1] != S[paths_st[-1], -1]:
+                paths_st.append(t)
+            #'''
 
         D_cp = D.copy()
 
+        #''' 出力パス制限ルート
+        for t in paths_st[1:]:
+            path_cost = D[t,-1]
+            path_lenF = t - S[t, -1]
+            if not path_cost < self.PATH_TH: # パスのコストが閾値より低ければ以降の処理を実行
+                continue
+            if not path_lenF > self.FRAME_TH:
+                continue
+
+            relativeCost = float(self.PATH_TH) - float(path_cost) # 閾値基準の相対コスト
+            #print("#")
+            
+            t_link = t
+            j_link = len_b - 1
+            path = [[t_link, j_link]]
+            while(D_link[t_link, j_link][0] != 0 or D_link[t_link, j_link][1] != 0):
+                path.append(D_link[t_link, j_link])
+                t_link, j_link = D_link[t_link, j_link].astype(int)
+
+            self.paths.append(np.array(path))
+            self.costs.append(relativeCost)
+        #'''
+
+        ''' 全パス出力ルート
         for t in range(0, len_x):
             path_cost = D[t,-1]
             path_lenF = t - S[t, -1]
             #print(S[t, -1])
-
-            
 
             if not path_cost < self.PATH_TH:
                 continue
             #if not path_lenF < self.:
             #    continue
             
-            ぱすのせんてい・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・・
             t_link = t
             j_link = len_y - 1
             path = [[t_link, j_link]]
@@ -310,32 +345,50 @@ class UseSpring():
             self.paths.append(np.array(path))
             self.costs.append(path_cost)
             #print(self.paths)
+        '''
         self.dataCost = D
 
+    def make_pathsAndCostData(self):
+        paths = self.paths
+        costs = self.costs
 
-    def plot_spring(self):
-        X = self.search_data
-        Y = self.target_data
-        for path in self.paths:
-            for line in path:
-                plt.plot(line, [X[line[0]], Y[line[1]]], linewidth=0.8, c="gray")
-            plt.plot(X)
-            plt.plot(Y)
-            plt.plot(path[:,0], X[path[:,0]], C="C2")
-            plt.show()
+        a = self.search_data
+        b = self.target_data
+        #D = self.dataDist.T # グラフ背景に使用する行列
+        D = (self.dataCost.T)
+
+        totalPathNum = 0
+        maxcost = 0
+
+
+        for pathNum, path in enumerate(paths):
+            path_start = path[0]
+            path_end = path[len(path) - 1]
+
+            totalPathNum = totalPathNum + 1
+
+            springPathLen = len(path)
+            if maxcost < costs[pathNum]:
+                maxcost = costs[pathNum] 
+
+            frame_start = self.search_data_usedFrames[path[springPathLen-1][0]]
+            frame_end = self.search_data_usedFrames[path[0][0]]
+
+            self.pathsAndCostData.append([frame_start, frame_end, costs[pathNum]])
+            #print("frame : "+ str(frame_start) +" ~ "+ str(frame_end) + " | cost : " + str(costs[pathNum]))
+        #print("total detected path : "+ str(totalPathNum))
+        #print("max cost is : "+ str(maxcost))
+
+
 
     def plot_path(self):
         paths = self.paths
         costs = self.costs
 
-        x = self.search_data
-        y = self.target_data
-        D = self.dataDist
-        print(len(D))
-        print("\n\n")
+        a = self.search_data
+        b = self.target_data
+        #D = self.dataDist.T # グラフ背景に使用する行列
         D = (self.dataCost.T)
-        print(len(D))
-
 
         plt.figure(figsize=(5,5))
         gs = gridspec.GridSpec(2, 2,
@@ -350,16 +403,14 @@ class UseSpring():
         ax2.get_xaxis().set_ticks([])
         ax2.get_yaxis().set_ticks([])
         
-        printPathNum = 0
+        totalPathNum = 0
         maxcost = 0
         for pathNum, path in enumerate(paths):
             path_start = path[0]
             path_end = path[len(path) - 1]
-            #if int((path_head[0] - path_tail[0])) > self.FRAME_TH:
-            #print(path_start)
-            #print(path_end)
-            printPathNum = printPathNum + 1
-            #print(path)
+
+            totalPathNum = totalPathNum + 1
+
             ax2.plot(path[:,0]+0.5, path[:,1]+0.5, c="C3")
             springPathLen = len(path)
             if maxcost < costs[pathNum]:
@@ -367,30 +418,29 @@ class UseSpring():
 
             frame_start = self.search_data_usedFrames[path[springPathLen-1][0]]
             frame_end = self.search_data_usedFrames[path[0][0]]
+            #print("frame : "+ str(frame_start) +" ~ "+ str(frame_end) + " | cost : " + str(costs[pathNum]))
+        #print("total detected path : "+ str(totalPathNum))
+        #print("max cost is : "+ str(maxcost))
 
-            print("frame : "+ str(frame_start) +" ~ "+ str(frame_end) + " | cost : " + str(costs[pathNum]))
-            
-            
-        print("total detected path : "+ str(printPathNum))
-        print("max cost is : "+ str(maxcost))
-        
-        ax4.plot(x)
-        ax4.set_xlabel("$X$")
+        ax4.plot(a)
+        ax4.set_xlabel("$A$")
+
         ax1.invert_xaxis()
-        ax1.plot(y, range(len(y)), c="C1")
-        ax1.set_ylabel("$Y$")
+        ax1.plot(b, range(len(b)), c="C1")
+        ax1.set_ylabel("$B$")
 
-        ax2.set_xlim(0, len(x))
-        ax2.set_ylim(0, len(y))
+        ax2.set_xlim(0, len(a))
+        ax2.set_ylim(0, len(b))
+
         plt.show()
 
     def plot_connection(self):
         X = self.search_data
-        Y = self.target_data
+        B = self.target_data
         for line in self.path:
-            plt.plot(line, [X[line[0]], Y[line[1]]], linewidth=0.8, c="gray")
+            plt.plot(line, [X[line[0]], B[line[1]]], linewidth=0.8, c="gray")
         plt.plot(X)
-        plt.plot(Y)
+        plt.plot(B)
         #plt.plot(self.path[:,0], X[self.path[:,0]], c="C2")
         plt.show()
 
@@ -417,18 +467,90 @@ def load_targetData(targetData_dirPath):
 
 # 検索データの読み込み
 def load_searchData(searchData_Path):
+    print("Start loading search data")
     if searchData_Path is not None:
         treat_TShandData = Treat_timeSeriesHandData()
         treat_TShandData.arrangement(searchData_Path)
         treat_TShandData.calc_frameDifference()
 
-        
+        search_Data.totalElem = len(treat_TShandData.labels)
+        search_Data.totalFrame = treat_TShandData.totalFrame
         search_Data.usedFrames = treat_TShandData.usedFrames
         search_Data.Velocity_TShandData_L = treat_TShandData.velocity_TShandData_L
         search_Data.Velocity_TShandData_R = treat_TShandData.velocity_TShandData_R
+    print("Completed loading search data")
 
 # 指定したデータのプロットを表示
 
+
+
+def calc_tangoCost(dataNum):
+    totalElemNum = search_Data.totalElem - 1 # フレーム番号を除いたデータの全要素数
+
+    PACdata_L = []
+    PACdata_R = []
+
+    costPerFrame = [0 for i in range(search_Data.totalFrame)]
+    frameNums = [i for i in range(search_Data.totalFrame)]
+
+    for elemNum in range(int(totalElemNum/2)): # LR を同時に処理
+        # 時系列ハンドデータから指定した要素のみの時系列データを抽出
+        A_L = []
+        velocity_TShandData = search_Data.Velocity_TShandData_L
+        for velocity_handData in velocity_TShandData: # 全時系列データから特定のインデックスのみを時系列順に取り出す
+            A_L.append(velocity_handData[elemNum]) # handのelement
+        B_L = []
+        velocity_TShandData = target_DataBase.AllVelocity_TShandData_L[dataNum] # targetデータではデータ番号が必要
+        for elocity_handData in velocity_TShandData:
+            B_L.append(velocity_handData[elemNum])
+        
+
+        use_spring = UseSpring() #初期化
+        use_spring.PATH_TH = 20000
+        use_spring.FRAME_TH = 2
+        use_spring.search_data_usedFrames = search_Data.usedFrames
+        use_spring.target_data = B_L
+        use_spring.search_data = A_L
+        use_spring.mySpring()
+        use_spring.make_pathsAndCostData()
+        #PACdata_L.append(use_spring.pathsAndCostData)
+        for pathsAndCost in use_spring.pathsAndCostData:
+            path_start = pathsAndCost[0]
+            path_end = pathsAndCost[1]
+            path_cost = pathsAndCost[1]
+            for frameNum in range(path_start, path_end+1):
+                costPerFrame[frameNum] = costPerFrame[frameNum] + path_cost
+
+
+
+        A_R = []
+        velocity_TShandData = search_Data.Velocity_TShandData_R
+        for velocity_handData in velocity_TShandData: # 全時系列データから特定のインデックスのみを時系列順に取り出す
+            A_R.append(velocity_handData[elemNum]) # handのelement
+        B_R = []
+        velocity_TShandData = target_DataBase.AllVelocity_TShandData_R[dataNum]
+        for elocity_handData in velocity_TShandData:
+            B_R.append(velocity_handData[elemNum])
+
+        use_spring = UseSpring()
+        use_spring.PATH_TH = 20000
+        use_spring.FRAME_TH = 2
+        use_spring.search_data_usedFrames = search_Data.usedFrames
+        use_spring.target_data = B_L
+        use_spring.search_data = A_L
+        use_spring.mySpring()
+        use_spring.make_pathsAndCostData()
+        PACdata_R.append(use_spring.pathsAndCostData)
+        for pathsAndCost in use_spring.pathsAndCostData:
+            path_start = pathsAndCost[0]
+            path_end = pathsAndCost[1]
+            path_cost = pathsAndCost[1]
+            for frameNum in range(path_start, path_end+1):
+                costPerFrame[frameNum] = costPerFrame[frameNum] + path_cost
+    print(time.perf_counter() - time_start)
+    print(time.perf_counter() - time_calc)
+    plt.plot(frameNums, costPerFrame, color="k") # 点列(x,y)を黒線で繋いだプロット
+    plt.show() # プロットを表示
 
 def execute():
     
@@ -453,7 +575,7 @@ def execute():
         X = []
         Y = []
         indexNum = 1 # 0~41
-        isSide = 'l' # l or r
+        isSide = 'r' # l or r
         dataNum = 21
 
         
@@ -496,8 +618,9 @@ def execute():
 
 
 if __name__ == "__main__":
-    #userDir = "C:/Users/hisa/Desktop/research/"
-    userDir = "C:/Users/root/Desktop/hisa_reserch/"
+    time_start = time.perf_counter()
+    userDir = "C:/Users/hisa/Desktop/research/"
+    #userDir = "C:/Users/root/Desktop/hisa_reserch/"
     tango_data_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/tango/"
     bunsyo_data_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/bunsyo/"
 
@@ -507,6 +630,8 @@ if __name__ == "__main__":
     load_targetData(tango_data_dirPath)
     load_searchData(bunsyo_data_dirPath + "4.csv")
 
-    execute()
+    time_calc = time.perf_counter()
+    calc_tangoCost(21)
+    #execute()
 
     #plt_originalData()
