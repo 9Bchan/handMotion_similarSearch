@@ -283,24 +283,37 @@ class UseSpring():
             S[t, 0] = t
 
             for j in range(1, len_b):
-                    pi, pj, m = self.get_min(D[t - 1, j],
+                    mt, mj, m = self.get_min(D[t - 1, j],
                                         D[t, j - 1],
                                         D[t - 1, j - 1],
                                         t, j)
                     D[t, j] = self.get_dist(a[t], b[j]) + m
-                    D_link[t, j] = [pi, pj]
-                    S[t, j] = S[pi,pj]
+                    D_link[t, j] = [mt, mj]
+                    S[t, j] = S[mt, mj]
 
-            #''' 出力パス制限ルート
+            ''' 出力パス制限ルート 1
             # 開始地点が重複するパスのうち最小コストであるパスを選定
             if S[t, -1] == S[paths_st[-1], -1] and D[t, -1] < D[paths_st[-1], -1]: # paths_stに最後に登録されているパスについて、開始地点が同じかつ、コストがより低いパスがあればpaths_stを更新
                 paths_st[-1] = t
             if S[t, -1] != S[paths_st[-1], -1]:
                 paths_st.append(t)
+            '''
+            #''' 出力パス制限ルート 2
+            # 同じ開始点を持つパスのうち、他のパスと区間が被らず、最小コストのパスを求める 
+            if S[paths_st[-1], -1] != S[t, -1]: # 異なる開始点を持つパスの切り替わりを検知
+                intervalEnd = S[t, -1]
+            elif t == len_a - 1: # 最終フレームを検知 (異なる開始点を持つパスの切り替わりを検知、では最後の走査が行われないため)
+                intervalEnd = t
+            else:
+                continue
+            for pt in range(paths_st[-1], intervalEnd): # 前回出力されたパスの終点位置から現在見ているパスの開始点(もしくは最終フレーム位置)までを走査
+                if D[pt, -1] < D[paths_st[-1], -1]: 
+                    paths_st[-1] = pt
+            if not t == len_a - 1:   # 最終フレームでは必要ない
+                paths_st.append(t) # 異なる開始点を持つパスの切り替わり直後の、パスの開始点を入れておく
             #'''
 
         D_cp = D.copy()
-
         #''' 出力パス制限ルート
         for t in paths_st[1:]:
             path_cost = D[t,-1]
@@ -375,9 +388,10 @@ class UseSpring():
             frame_end = self.search_data_usedFrames[path[0][0]]
 
             self.pathsAndCostData.append([frame_start, frame_end, costs[pathNum]])
-            #print("frame : "+ str(frame_start) +" ~ "+ str(frame_end) + " | cost : " + str(costs[pathNum]))
-        #print("total detected path : "+ str(totalPathNum))
-        #print("max cost is : "+ str(maxcost))
+            print("frame : "+ str(frame_start) +" ~ "+ str(frame_end) + " | cost : " + str(costs[pathNum]))
+        print("total detected path : "+ str(totalPathNum))
+        print("max cost is : "+ str(maxcost))
+        print("##########################")
 
 
 
@@ -506,7 +520,7 @@ def calc_tangoCost(dataNum):
         
 
         use_spring = UseSpring() #初期化
-        use_spring.PATH_TH = 20000
+        use_spring.PATH_TH = 3000
         use_spring.FRAME_TH = 2
         use_spring.search_data_usedFrames = search_Data.usedFrames
         use_spring.target_data = B_L
@@ -533,7 +547,7 @@ def calc_tangoCost(dataNum):
             B_R.append(velocity_handData[elemNum])
 
         use_spring = UseSpring()
-        use_spring.PATH_TH = 20000
+        use_spring.PATH_TH = 3000
         use_spring.FRAME_TH = 2
         use_spring.search_data_usedFrames = search_Data.usedFrames
         use_spring.target_data = B_L
@@ -547,8 +561,8 @@ def calc_tangoCost(dataNum):
             path_cost = pathsAndCost[1]
             for frameNum in range(path_start, path_end+1):
                 costPerFrame[frameNum] = costPerFrame[frameNum] + path_cost
-    print(time.perf_counter() - time_start)
-    print(time.perf_counter() - time_calc)
+    print("total execution time : " + str(time.perf_counter() - time_start))
+    print("calclation time : " + str(time.perf_counter() - time_calc))
     plt.plot(frameNums, costPerFrame, color="k") # 点列(x,y)を黒線で繋いだプロット
     plt.show() # プロットを表示
 
