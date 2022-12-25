@@ -563,8 +563,27 @@ def calc_tangoCost(dataNum):
                 costPerFrame[frameNum] = costPerFrame[frameNum] + path_cost
     print("total execution time : " + str(time.perf_counter() - time_start))
     print("calclation time : " + str(time.perf_counter() - time_calc))
-    plt.plot(frameNums, costPerFrame, color="k") # 点列(x,y)を黒線で繋いだプロット
-    plt.show() # プロットを表示
+    
+    
+    #plt.plot(frameNums, costPerFrame, color="k") # 点列(x,y)を黒線で繋いだプロット
+    #plt.show() # プロットを表示
+
+    return costPerFrame
+
+def all_calc():
+    all_costPerFrame = []
+    for target_dataNum in target_DataBase.AllDataNum:
+        target_dataNum = int(target_dataNum)
+        all_costPerFrame.append(calc_tangoCost(target_dataNum))
+    
+    # npを利用して転置
+    all_costPerFrame_ = np.array(all_costPerFrame)
+    all_costPerFrame = np.array(all_costPerFrame_.T)
+
+    outputFile = open(outputFileName, 'w', newline='')
+    writer = csv.writer(outputFile)
+    writer.writerows(all_costPerFrame)
+    outputFile.close()
 
 def execute():
     
@@ -625,6 +644,7 @@ def execute():
 
         use_spring.mySpring()
 
+        
 
         use_spring.plot_path()
         #use_spring.plot_connection()
@@ -637,6 +657,7 @@ if __name__ == "__main__":
     #userDir = "C:/Users/root/Desktop/hisa_reserch/"
     tango_data_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/tango/"
     bunsyo_data_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/bunsyo/"
+    outputFileName = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/similarWords.csv"
 
     target_DataBase = TargetDataBase() # データベース用意
     search_Data = SearchData()
@@ -645,7 +666,9 @@ if __name__ == "__main__":
     load_searchData(bunsyo_data_dirPath + "4.csv")
 
     time_calc = time.perf_counter()
-    calc_tangoCost(21)
+
+    all_calc()
+    #calc_tangoCost(33)
     #execute()
 
     #plt_originalData()
