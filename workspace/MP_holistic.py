@@ -3,7 +3,7 @@ import mediapipe as mp
 
 
 def cam_MP():
-    cap = cv2.VideoCapture("C:/Users/hisa/Desktop/research/HandMotion_SimilarSearch/edited_video_part/bunsyo/4.mp4")
+    cap = cv2.VideoCapture("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video_part/bunsyo/4.mp4")
     #"C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video_part/tango/33.mp4"
     #C:/Users/hisa/Desktop/research/
     frame_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
@@ -63,7 +63,7 @@ def cam_MP():
             
 
             cv2.imshow("MP_holistic",frame)
-            #print(cap.get(cv2.CAP_PROP_POS_FRAMES))
+            print(cap.get(cv2.CAP_PROP_POS_FRAMES))
 
             
             key = cv2.waitKey(isStop)

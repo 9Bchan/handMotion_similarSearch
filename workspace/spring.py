@@ -291,14 +291,17 @@ class UseSpring():
                     D_link[t, j] = [mt, mj]
                     S[t, j] = S[mt, mj]
 
-            ''' 出力パス制限ルート 1
+            #''' 出力パス制限ルート 1
             # 開始地点が重複するパスのうち最小コストであるパスを選定
             if S[t, -1] == S[paths_st[-1], -1] and D[t, -1] < D[paths_st[-1], -1]: # paths_stに最後に登録されているパスについて、開始地点が同じかつ、コストがより低いパスがあればpaths_stを更新
                 paths_st[-1] = t
             if S[t, -1] != S[paths_st[-1], -1]:
                 paths_st.append(t)
-            '''
-            #''' 出力パス制限ルート 2
+            #'''
+
+            
+
+            ''' 出力パス制限ルート 2
             # 同じ開始点を持つパスのうち、他のパスと区間が被らず、最小コストのパスを求める 
             if S[paths_st[-1], -1] != S[t, -1]: # 異なる開始点を持つパスの切り替わりを検知
                 intervalEnd = S[t, -1]
@@ -306,21 +309,28 @@ class UseSpring():
                 intervalEnd = t
             else:
                 continue
-            for pt in range(paths_st[-1], intervalEnd): # 前回出力されたパスの終点位置から現在見ているパスの開始点(もしくは最終フレーム位置)までを走査
+            for pt in range(S[paths_st[-1], -1], intervalEnd): # 前回出力されたパスの終点位置から現在見ているパスの開始点-1(もしくは最終フレーム位置)までを走査
                 if D[pt, -1] < D[paths_st[-1], -1]: 
                     paths_st[-1] = pt
             if not t == len_a - 1:   # 最終フレームでは必要ない
-                paths_st.append(t) # 異なる開始点を持つパスの切り替わり直後の、パスの開始点を入れておく
-            #'''
+                paths_st.append(t) # 異なる開始点を持つパスの切り替わり直後の、パスの終了点を入れておく
+            '''
 
-        D_cp = D.copy()
+
+
+
+
+
+
+
+
         #''' 出力パス制限ルート
         for t in paths_st[1:]:
             path_cost = D[t,-1]
             path_lenF = t - S[t, -1]
-            if not path_cost < self.PATH_TH: # パスのコストが閾値より低ければ以降の処理を実行
+            if path_cost > self.PATH_TH: # パスのコストが閾値より低ければ以降の処理を実行
                 continue
-            if not path_lenF > self.FRAME_TH:
+            if path_lenF < self.FRAME_TH:
                 continue
 
             relativeCost = float(self.PATH_TH) - float(path_cost) # 閾値基準の相対コスト
@@ -385,7 +395,7 @@ class UseSpring():
                 maxcost = costs[pathNum] 
 
             frame_start = self.search_data_usedFrames[path[springPathLen-1][0]]
-            frame_end = self.search_data_usedFrames[path[0][0]]
+            frame_end = self.search_data_usedFrames[path[0][0]+1]
 
             self.pathsAndCostData.append([frame_start, frame_end, costs[pathNum]])
             print("frame : "+ str(frame_start) +" ~ "+ str(frame_end) + " | cost : " + str(costs[pathNum]))
@@ -431,10 +441,10 @@ class UseSpring():
                 maxcost = costs[pathNum] 
 
             frame_start = self.search_data_usedFrames[path[springPathLen-1][0]]
-            frame_end = self.search_data_usedFrames[path[0][0]]
-            #print("frame : "+ str(frame_start) +" ~ "+ str(frame_end) + " | cost : " + str(costs[pathNum]))
-        #print("total detected path : "+ str(totalPathNum))
-        #print("max cost is : "+ str(maxcost))
+            frame_end = self.search_data_usedFrames[path[0][0]+1] # フレーム速度位置からフレーム位置に直すため+1
+            print("frame : "+ str(frame_start) +" ~ "+ str(frame_end) + " | cost : " + str(costs[pathNum]))
+        print("total detected path : "+ str(totalPathNum))
+        print("max cost is : "+ str(maxcost))
 
         ax4.plot(a)
         ax4.set_xlabel("$A$")
@@ -505,9 +515,12 @@ def calc_tangoCost(dataNum):
     PACdata_R = []
 
     costPerFrame = [0 for i in range(search_Data.totalFrame)]
+    cntPerFrame = [0 for i in range(search_Data.totalFrame)]
+    cntP = 0
     frameNums = [i for i in range(search_Data.totalFrame)]
 
     for elemNum in range(int(totalElemNum/2)): # LR を同時に処理
+        #print("element : "+ str(elemNum))
         # 時系列ハンドデータから指定した要素のみの時系列データを抽出
         A_L = []
         velocity_TShandData = search_Data.Velocity_TShandData_L
@@ -515,25 +528,42 @@ def calc_tangoCost(dataNum):
             A_L.append(velocity_handData[elemNum]) # handのelement
         B_L = []
         velocity_TShandData = target_DataBase.AllVelocity_TShandData_L[dataNum] # targetデータではデータ番号が必要
-        for elocity_handData in velocity_TShandData:
+        for velocity_handData in velocity_TShandData:
             B_L.append(velocity_handData[elemNum])
         
-
-        use_spring = UseSpring() #初期化
-        use_spring.PATH_TH = 3000
-        use_spring.FRAME_TH = 2
-        use_spring.search_data_usedFrames = search_Data.usedFrames
-        use_spring.target_data = B_L
-        use_spring.search_data = A_L
-        use_spring.mySpring()
-        use_spring.make_pathsAndCostData()
+        
+        use_spring_L = UseSpring() #初期化
+        use_spring_L.PATH_TH = 500
+        use_spring_L.FRAME_TH = 10
+        use_spring_L.search_data_usedFrames = search_Data.usedFrames
+        use_spring_L.target_data = B_L
+        use_spring_L.search_data = A_L
+        use_spring_L.mySpring()
+        use_spring_L.make_pathsAndCostData()
         #PACdata_L.append(use_spring.pathsAndCostData)
-        for pathsAndCost in use_spring.pathsAndCostData:
+        for frameNum in frameNums:
+            cost_max = 0 
+            for pathsAndCost in use_spring_L.pathsAndCostData:
+                path_start = pathsAndCost[0]
+                path_end = pathsAndCost[1]
+                path_cost = pathsAndCost[2]
+                if path_start <= frameNum <= path_end and cost_max < path_cost:
+                    cost_max = path_cost
+            costPerFrame[frameNum] = costPerFrame[frameNum] + cost_max
+            cntPerFrame[frameNum] = cntPerFrame[frameNum] + 1
+
+                
+        ''' ルート2
+        for pathsAndCost in use_spring_L.pathsAndCostData:
             path_start = pathsAndCost[0]
             path_end = pathsAndCost[1]
-            path_cost = pathsAndCost[1]
-            for frameNum in range(path_start, path_end+1):
+            path_cost = pathsAndCost[2]
+            for frameNum in range(path_start, path_end):
                 costPerFrame[frameNum] = costPerFrame[frameNum] + path_cost
+                cntPerFrame[frameNum] = cntPerFrame[frameNum] + 1
+                if frameNum == 300:
+                    cntP = cntP + 1
+        ''' 
 
 
 
@@ -543,30 +573,47 @@ def calc_tangoCost(dataNum):
             A_R.append(velocity_handData[elemNum]) # handのelement
         B_R = []
         velocity_TShandData = target_DataBase.AllVelocity_TShandData_R[dataNum]
-        for elocity_handData in velocity_TShandData:
+        for velocity_handData in velocity_TShandData:
             B_R.append(velocity_handData[elemNum])
 
-        use_spring = UseSpring()
-        use_spring.PATH_TH = 3000
-        use_spring.FRAME_TH = 2
-        use_spring.search_data_usedFrames = search_Data.usedFrames
-        use_spring.target_data = B_L
-        use_spring.search_data = A_L
-        use_spring.mySpring()
-        use_spring.make_pathsAndCostData()
-        PACdata_R.append(use_spring.pathsAndCostData)
-        for pathsAndCost in use_spring.pathsAndCostData:
+        use_spring_R = UseSpring()
+        use_spring_R.PATH_TH = 500
+        use_spring_R.FRAME_TH = 10
+        use_spring_R.search_data_usedFrames = search_Data.usedFrames
+        use_spring_R.target_data = B_R
+        use_spring_R.search_data = A_R
+        use_spring_R.mySpring()
+        use_spring_R.make_pathsAndCostData()
+
+        for frameNum in frameNums:
+            cost_max = 0 
+            for pathsAndCost in use_spring_R.pathsAndCostData:
+                path_start = pathsAndCost[0]
+                path_end = pathsAndCost[1]
+                path_cost = pathsAndCost[2]
+                if path_start <= frameNum <= path_end and cost_max < path_cost:
+                    cost_max = path_cost
+            costPerFrame[frameNum] = costPerFrame[frameNum] + cost_max
+            cntPerFrame[frameNum] = cntPerFrame[frameNum] + 1
+
+        ''' ルート2
+        for pathsAndCost in use_spring_R.pathsAndCostData:
             path_start = pathsAndCost[0]
             path_end = pathsAndCost[1]
-            path_cost = pathsAndCost[1]
-            for frameNum in range(path_start, path_end+1):
+            path_cost = pathsAndCost[2]
+            for frameNum in range(path_start, path_end):
                 costPerFrame[frameNum] = costPerFrame[frameNum] + path_cost
+                cntPerFrame[frameNum] = cntPerFrame[frameNum] + 1
+                if frameNum == 300:
+                    cntP = cntP + 1
+        '''
     print("total execution time : " + str(time.perf_counter() - time_start))
     print("calclation time : " + str(time.perf_counter() - time_calc))
+    print(cntP)
     
     
-    #plt.plot(frameNums, costPerFrame, color="k") # 点列(x,y)を黒線で繋いだプロット
-    #plt.show() # プロットを表示
+    plt.plot(frameNums, costPerFrame, color="k") # 点列(x,y)を黒線で繋いだプロット
+    plt.show() # プロットを表示
 
     return costPerFrame
 
@@ -607,9 +654,9 @@ def execute():
         """
         X = []
         Y = []
-        indexNum = 1 # 0~41
+        indexNum = 4 # 0~41
         isSide = 'r' # l or r
-        dataNum = 21
+        dataNum = 10
 
         
 
@@ -639,7 +686,7 @@ def execute():
         use_spring.target_data = Y
         use_spring.search_data = X
         #use_spring.PATH_TH = 3000 # 出力パスの最大合計スコア
-        use_spring.FRAME_TH = -1 # 出力パスの最低経由フレーム数
+        use_spring.FRAME_TH = 5 # 出力パスの最低経由フレーム数
         
 
         use_spring.mySpring()
@@ -653,8 +700,8 @@ def execute():
 
 if __name__ == "__main__":
     time_start = time.perf_counter()
-    userDir = "C:/Users/hisa/Desktop/research/"
-    #userDir = "C:/Users/root/Desktop/hisa_reserch/"
+    #userDir = "C:/Users/hisa/Desktop/research/"
+    userDir = "C:/Users/root/Desktop/hisa_reserch/"
     tango_data_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/tango/"
     bunsyo_data_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/bunsyo/"
     outputFileName = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/similarWords.csv"
@@ -667,8 +714,8 @@ if __name__ == "__main__":
 
     time_calc = time.perf_counter()
 
-    all_calc()
-    #calc_tangoCost(33)
+    #all_calc()
+    calc_tangoCost(157)
     #execute()
 
     #plt_originalData()
