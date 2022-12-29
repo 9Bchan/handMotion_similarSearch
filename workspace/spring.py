@@ -16,6 +16,8 @@ class SearchData():
     def __init__(self):
         self.Velocity_TShandData_L = None # Velocity_TShandData_L[データ名][フレーム][要素(0~41)]
         self.Velocity_TShandData_R = None
+        self.wristVelAndJointPos_TShandData_L = None
+        self.wristVelAndJointPos_TShandData_R = None
         self.usedFrames = None # 処理に利用されたフレームを記録 (検出が不十分なフレームは除外される)
         self.totalFrame = None
         self.totalElem = None # データの要素数
@@ -25,6 +27,8 @@ class TargetDataBase():
     def __init__(self):
         self.AllVelocity_TShandData_L = [] # AllVelocity_TShandData_L[データ名][フレーム][要素(0~41)]
         self.AllVelocity_TShandData_R = []
+        self.AllwristVelAndJointPos_TShandData_L = []
+        self.AllwristVelAndJointPos_TShandData_R = []
         self.AllDataNum = []
         self.labels = None
 
@@ -81,11 +85,16 @@ class TargetDataBase():
 class Treat_timeSeriesHandData():
     def __init__(self):
         self.totalFrame= None # 総フレーム数
+        self.partTotalFrame= None # 総フレーム数
         self.totalIndex = None # 単位フレームにおけるデータの要素数
         self.usedFrames =[] # 処理に利用されたフレームを記録 (検出が不十分なフレームは除外される)
         self.position_TShandData_L = [] # 位置データ推移
         self.position_TShandData_R = []
         self.velocity_TShandData_L = [] # 速度データ推移
+        self.velocity_TShandData_R = []
+        self.wristVelAndJointPos_TShandData_L = [] 
+        self.wristVelAndJointPos_TShandData_R = [] 
+        self.skippedFrameNums = []
         self.velocity_TShandData_R = []
         self.labels = None 
         self.frameWidth = FRAME_WIDTH
@@ -101,8 +110,46 @@ class Treat_timeSeriesHandData():
                 self.labels = labelsData
 
             self.totalFrame = len(timeSeries_handData[1:])
-            
+            skpCnt = 1
             for frame_TShandData in timeSeries_handData[1:]:
+                frame_data = frame_TShandData[:1] # 先頭データにはフレーム番号
+                frame_handData_L = frame_TShandData[1:21*2+1] # 単位フレームにおけるハンドデータを左右に分割
+                frame_handData_R = frame_TShandData[21*2+1:]
+                
+                
+                
+                if frame_handData_L[0] != 'None' and  frame_handData_R[0] != 'None': #そのフレームにおいて両手が検出されていればリストに追加
+                    frame_handData_L_float = [float(i) for i in frame_handData_L] # 要素をstrからfloatに変換
+                    frame_handData_R_float = [float(i) for i in frame_handData_R]
+                    self.usedFrames.append(int(frame_data[0]))
+                    self.position_TShandData_L.append(frame_handData_L_float)
+                    self.position_TShandData_R.append(frame_handData_R_float)
+                    self.skippedFrameNums.append(skpCnt)
+                    skpCnt = 1
+                
+                else:
+                    skpCnt = skpCnt + 1
+            
+            #self.totalFrame = len(self.position_TShandData_L)
+            self.totalIndex = len(self.position_TShandData_L[0])
+    
+    def arrangement2(self, handData_filePath): # 問い合わせ用csvデータ読み込み
+        with open(handData_filePath, newline='') as f:
+            csvreader = csv.reader(f)
+            timeSeries_handData = [row for row in csvreader] # 一行目:ラベル 二行目以降:フレーム毎の左右のハンドデータ
+
+            NUMOF_CUTFRAME_ST = 20
+            NUMOF_CUTFRAME_ED = 30
+
+            labelsData = timeSeries_handData[0] 
+            if self.labels is None:
+                self.labels = labelsData
+
+            self.totalFrame = len(timeSeries_handData[1:])
+            self.partTotalFrame = len(timeSeries_handData[NUMOF_CUTFRAME_ST + 1 : -NUMOF_CUTFRAME_ED]) # 動画の最初と最後を一部カット
+            
+            skpCnt = 1
+            for frame_TShandData in timeSeries_handData[NUMOF_CUTFRAME_ST + 1 : -NUMOF_CUTFRAME_ED]:
                 frame_data = frame_TShandData[:1] # 先頭データにはフレーム番号
                 frame_handData_L = frame_TShandData[1:21*2+1] # 単位フレームにおけるハンドデータを左右に分割
                 frame_handData_R = frame_TShandData[21*2+1:]
@@ -114,8 +161,12 @@ class Treat_timeSeriesHandData():
                     self.usedFrames.append(int(frame_data[0]))
                     self.position_TShandData_L.append(frame_handData_L_float)
                     self.position_TShandData_R.append(frame_handData_R_float)
+                    self.skippedFrameNums.append(skpCnt)
+                    skpCnt = 1
+                else:
+                    skpCnt = skpCnt +1 
             
-            #self.totalFrame = len(self.position_TShandData_L)
+            #self.totalFrame = len(self.position_TShandData_L) 0.6695 - 0.73
             self.totalIndex = len(self.position_TShandData_L[0])
                 
     
@@ -126,7 +177,7 @@ class Treat_timeSeriesHandData():
                 velocity_handData_R = []
                 for index_num in range(self.totalIndex): # 単位フレームのデータ要素数分ループ
                     #　正規化値をピクセル値に直すための係数
-                    if index_num/2 :
+                    if index_num%2 :
                         frame_coef = self.frameWidth
                     else:
                         frame_coef = self.frameHeight
@@ -135,6 +186,37 @@ class Treat_timeSeriesHandData():
                     velocity_handData_R.append(self.position_TShandData_R[frame_num][index_num]*frame_coef - self.position_TShandData_R[frame_num - 1 ][index_num]*frame_coef)
                 self.velocity_TShandData_L.append(velocity_handData_L)
                 self.velocity_TShandData_R.append(velocity_handData_R)
+
+
+    def make_FeatureData(self):
+        #print(self.position_TShandData_R)
+        for frame_num in range(len(self.usedFrames)): # 左右のpositionリストの大きさは同じ フレーム数分ループ
+            if not frame_num == 0: # 最初のフレームのみ除外
+                wristVelAndJointPos_handData_L = []
+                wristVelAndJointPos_handData_R = []
+                for index_num in range(self.totalIndex): # 単位フレームのデータ要素数分ループ
+                    xORy = 0 # x:0 y:1
+                    #　正規化値をピクセル値に直すための係数
+                    if index_num%2: # 奇数
+                        xORy = 1
+                        #frame_coef = self.frameWidth
+                        frame_coef = self.frameHeight
+                    else:   # 偶数
+                        xORy = 0
+                        #frame_coef = self.frameHeight
+                        frame_coef = self.frameWidth
+                    
+                    if index_num == 0 or index_num == 1: # 手首要素は速度情報
+                        #print(self.skippedFrameNums)
+                        wristVelAndJointPos_handData_L.append((self.position_TShandData_L[frame_num][index_num]*frame_coef - self.position_TShandData_L[frame_num - 1][index_num]*frame_coef)/self.skippedFrameNums[frame_num])
+                        wristVelAndJointPos_handData_R.append((self.position_TShandData_R[frame_num][index_num]*frame_coef - self.position_TShandData_R[frame_num - 1][index_num]*frame_coef)/self.skippedFrameNums[frame_num])
+                    
+                    else: #それ以外は手首からの相対座標
+                        wristVelAndJointPos_handData_L.append(self.position_TShandData_L[frame_num][index_num]*frame_coef - self.position_TShandData_L[frame_num][xORy]*frame_coef)
+                        wristVelAndJointPos_handData_R.append(self.position_TShandData_R[frame_num][index_num]*frame_coef - self.position_TShandData_R[frame_num][xORy]*frame_coef)
+                self.wristVelAndJointPos_TShandData_L.append(wristVelAndJointPos_handData_L)
+                self.wristVelAndJointPos_TShandData_R.append(wristVelAndJointPos_handData_R)
+
     
     
 
@@ -172,6 +254,49 @@ class UseSpring():
             else:
                 return i - 1, j - 1, m2
 
+
+    def dtw(self):
+        x = self.search_data
+        y = self.target_data
+        self.dataDist = np.sqrt((np.array(x).reshape(1, -1) - np.array(y).reshape(-1, 1))**2)
+
+        Tx = len(x)
+        Ty = len(y)
+
+        C = np.zeros((Tx, Ty))
+        B = np.zeros((Tx, Ty, 2), int)
+
+        C[0, 0] = self.get_dist(x[0], y[0])
+        for i in range(Tx):
+            C[i, 0] = C[i - 1, 0] + self.get_dist(x[i], y[0])
+            B[i, 0] = [i-1, 0]
+
+        for j in range(1, Ty):
+            C[0, j] = C[0, j - 1] + self.get_dist(x[0], y[j])
+            B[0, j] = [0, j - 1]
+
+        for i in range(1, Tx):
+            for j in range(1, Ty):
+                pi, pj, m = self.get_min(C[i - 1, j],
+                                    C[i, j - 1],
+                                    C[i - 1, j - 1],
+                                    i, j)
+                C[i, j] = self.get_dist(x[i], y[j]) + m
+                B[i, j] = [pi, pj]
+        cost = C[-1, -1]
+        
+        path = [[Tx - 1, Ty - 1]]
+        i = Tx - 1
+        j = Ty - 1
+
+        while ((B[i, j][0] != 0) or (B[i, j][1] != 0)):
+            path.append(B[i, j])
+            i, j = B[i, j].astype(int)
+        path.append([0,0])
+
+        self.paths.append(np.array(path))
+        self.costs.append(cost)
+        self.dataCost = C
 
     def spring(self):
         x = self.search_data
@@ -398,10 +523,10 @@ class UseSpring():
             frame_end = self.search_data_usedFrames[path[0][0]+1]
 
             self.pathsAndCostData.append([frame_start, frame_end, costs[pathNum]])
-            print("frame : "+ str(frame_start) +" ~ "+ str(frame_end) + " | cost : " + str(costs[pathNum]))
-        print("total detected path : "+ str(totalPathNum))
-        print("max cost is : "+ str(maxcost))
-        print("##########################")
+            #print("frame : "+ str(frame_start) +" ~ "+ str(frame_end) + " | cost : " + str(costs[pathNum]))
+        #print("total detected path : "+ str(totalPathNum))
+        #print("max cost is : "+ str(maxcost))
+        #print("##########################")
 
 
 
@@ -411,7 +536,7 @@ class UseSpring():
 
         a = self.search_data
         b = self.target_data
-        #D = self.dataDist.T # グラフ背景に使用する行列
+        #D = self.dataDist # グラフ背景に使用する行列
         D = (self.dataCost.T)
 
         plt.figure(figsize=(5,5))
@@ -447,11 +572,11 @@ class UseSpring():
         print("max cost is : "+ str(maxcost))
 
         ax4.plot(a)
-        ax4.set_xlabel("$A$")
+        ax4.set_xlabel("$X$")
 
         ax1.invert_xaxis()
         ax1.plot(b, range(len(b)), c="C1")
-        ax1.set_ylabel("$B$")
+        ax1.set_ylabel("$Y$")
 
         ax2.set_xlim(0, len(a))
         ax2.set_ylim(0, len(b))
@@ -461,12 +586,13 @@ class UseSpring():
     def plot_connection(self):
         X = self.search_data
         B = self.target_data
-        for line in self.path:
-            plt.plot(line, [X[line[0]], B[line[1]]], linewidth=0.8, c="gray")
-        plt.plot(X)
-        plt.plot(B)
-        #plt.plot(self.path[:,0], X[self.path[:,0]], c="C2")
-        plt.show()
+        for path in self.paths:
+            for line in path:
+                plt.plot(line, [X[line[0]], B[line[1]]], linewidth=0.8, c="gray")
+            plt.plot(X)
+            plt.plot(B)
+            #plt.plot(path[:,0], X[path[:,0]], c="C2")
+            plt.show()
 
 # 検索対象データの読み込み
 def load_targetData(targetData_dirPath):
@@ -476,14 +602,14 @@ def load_targetData(targetData_dirPath):
     if targetData_filePath_list is not None:
         for filePath in natsorted(targetData_filePath_list): # ファイルを番号順に読み込むためにnatsortedを使用
             treat_TShandData = Treat_timeSeriesHandData()
-            treat_TShandData.arrangement(filePath)
-            treat_TShandData.calc_frameDifference()
+            treat_TShandData.arrangement2(filePath)
+            treat_TShandData.make_FeatureData()
 
             fileName = os.path.splitext(os.path.basename(filePath))[0]
 
             # データベース登録
-            target_DataBase.AllVelocity_TShandData_L.append(treat_TShandData.velocity_TShandData_L)
-            target_DataBase.AllVelocity_TShandData_R.append(treat_TShandData.velocity_TShandData_R)
+            target_DataBase.AllwristVelAndJointPos_TShandData_L.append(treat_TShandData.wristVelAndJointPos_TShandData_L)
+            target_DataBase.AllwristVelAndJointPos_TShandData_R.append(treat_TShandData.wristVelAndJointPos_TShandData_R)
             target_DataBase.AllDataNum.append(fileName)
             target_DataBase.labels = treat_TShandData.labels
     
@@ -494,14 +620,14 @@ def load_searchData(searchData_Path):
     print("Start loading search data")
     if searchData_Path is not None:
         treat_TShandData = Treat_timeSeriesHandData()
-        treat_TShandData.arrangement(searchData_Path)
-        treat_TShandData.calc_frameDifference()
+        treat_TShandData.arrangement2(searchData_Path)
+        treat_TShandData.make_FeatureData()
 
         search_Data.totalElem = len(treat_TShandData.labels)
-        search_Data.totalFrame = treat_TShandData.totalFrame
+        search_Data.totalFrame = treat_TShandData.partTotalFrame
         search_Data.usedFrames = treat_TShandData.usedFrames
-        search_Data.Velocity_TShandData_L = treat_TShandData.velocity_TShandData_L
-        search_Data.Velocity_TShandData_R = treat_TShandData.velocity_TShandData_R
+        search_Data.wristVelAndJointPos_TShandData_L = treat_TShandData.wristVelAndJointPos_TShandData_L
+        search_Data.wristVelAndJointPos_TShandData_R = treat_TShandData.wristVelAndJointPos_TShandData_R
     print("Completed loading search data")
 
 # 指定したデータのプロットを表示
@@ -522,18 +648,20 @@ def calc_tangoCost(dataNum):
     for elemNum in range(int(totalElemNum/2)): # LR を同時に処理
         #print("element : "+ str(elemNum))
         # 時系列ハンドデータから指定した要素のみの時系列データを抽出
+
+        #''' 左手　%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         A_L = []
-        velocity_TShandData = search_Data.Velocity_TShandData_L
+        velocity_TShandData = search_Data.wristVelAndJointPos_TShandData_L
         for velocity_handData in velocity_TShandData: # 全時系列データから特定のインデックスのみを時系列順に取り出す
             A_L.append(velocity_handData[elemNum]) # handのelement
         B_L = []
-        velocity_TShandData = target_DataBase.AllVelocity_TShandData_L[dataNum] # targetデータではデータ番号が必要
+        velocity_TShandData = target_DataBase.AllwristVelAndJointPos_TShandData_L[dataNum] # targetデータではデータ番号が必要
         for velocity_handData in velocity_TShandData:
             B_L.append(velocity_handData[elemNum])
         
         
         use_spring_L = UseSpring() #初期化
-        use_spring_L.PATH_TH = 500
+        use_spring_L.PATH_TH = 2000
         use_spring_L.FRAME_TH = 10
         use_spring_L.search_data_usedFrames = search_Data.usedFrames
         use_spring_L.target_data = B_L
@@ -550,7 +678,10 @@ def calc_tangoCost(dataNum):
                 if path_start <= frameNum <= path_end and cost_max < path_cost:
                     cost_max = path_cost
             costPerFrame[frameNum] = costPerFrame[frameNum] + cost_max
-            cntPerFrame[frameNum] = cntPerFrame[frameNum] + 1
+            if not cost_max == 0:
+                cntPerFrame[frameNum] = cntPerFrame[frameNum] + 1
+
+        #左手　%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% '''
 
                 
         ''' ルート2
@@ -565,19 +696,19 @@ def calc_tangoCost(dataNum):
                     cntP = cntP + 1
         ''' 
 
-
+        #''' 右手　%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
         A_R = []
-        velocity_TShandData = search_Data.Velocity_TShandData_R
+        velocity_TShandData = search_Data.wristVelAndJointPos_TShandData_R
         for velocity_handData in velocity_TShandData: # 全時系列データから特定のインデックスのみを時系列順に取り出す
             A_R.append(velocity_handData[elemNum]) # handのelement
         B_R = []
-        velocity_TShandData = target_DataBase.AllVelocity_TShandData_R[dataNum]
+        velocity_TShandData = target_DataBase.AllwristVelAndJointPos_TShandData_R[dataNum]
         for velocity_handData in velocity_TShandData:
             B_R.append(velocity_handData[elemNum])
 
         use_spring_R = UseSpring()
-        use_spring_R.PATH_TH = 500
+        use_spring_R.PATH_TH = 2000
         use_spring_R.FRAME_TH = 10
         use_spring_R.search_data_usedFrames = search_Data.usedFrames
         use_spring_R.target_data = B_R
@@ -594,7 +725,10 @@ def calc_tangoCost(dataNum):
                 if path_start <= frameNum <= path_end and cost_max < path_cost:
                     cost_max = path_cost
             costPerFrame[frameNum] = costPerFrame[frameNum] + cost_max
-            cntPerFrame[frameNum] = cntPerFrame[frameNum] + 1
+            if not cost_max == 0:
+                cntPerFrame[frameNum] = cntPerFrame[frameNum] + 1
+
+        #右手　%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% '''
 
         ''' ルート2
         for pathsAndCost in use_spring_R.pathsAndCostData:
@@ -607,9 +741,9 @@ def calc_tangoCost(dataNum):
                 if frameNum == 300:
                     cntP = cntP + 1
         '''
-    print("total execution time : " + str(time.perf_counter() - time_start))
-    print("calclation time : " + str(time.perf_counter() - time_calc))
-    print(cntP)
+    #print("total execution time : " + str(time.perf_counter() - time_start))
+    #print("calclation time : " + str(time.perf_counter() - time_calc))
+    #print(cntP)
     
     
     plt.plot(frameNums, costPerFrame, color="k") # 点列(x,y)を黒線で繋いだプロット
@@ -619,9 +753,18 @@ def calc_tangoCost(dataNum):
 
 def all_calc():
     all_costPerFrame = []
-    for target_dataNum in target_DataBase.AllDataNum:
+    vestCost_costPerFrame = [0 for i in range(search_Data.totalFrame)]
+    vestTango_costPerFrame = [0 for i in range(search_Data.totalFrame)]
+    for target_dataNum in range(len(target_DataBase.AllDataNum)): # ファイル名に数字以外が含まれなければrangeは無くて良い
         target_dataNum = int(target_dataNum)
-        all_costPerFrame.append(calc_tangoCost(target_dataNum))
+        print("tango " + str(target_dataNum) + " procces start")
+        costPerFrame = calc_tangoCost(target_dataNum)
+        all_costPerFrame.append(costPerFrame)
+        for frameNum in range(len(vestCost_costPerFrame)):
+            if vestCost_costPerFrame[frameNum] < costPerFrame[frameNum]:
+                vestCost_costPerFrame[frameNum] = costPerFrame[frameNum]
+                vestTango_costPerFrame[frameNum] = target_dataNum
+        print("tango " + str(target_dataNum) + " procces ended")
     
     # npを利用して転置
     all_costPerFrame_ = np.array(all_costPerFrame)
@@ -632,11 +775,50 @@ def all_calc():
     writer.writerows(all_costPerFrame)
     outputFile.close()
 
+
+    outputFile = open(outputFileName2, 'w', newline='')
+    outputFile.writelines(vestTango_costPerFrame)
+    outputFile.close()
+
+def outputVest():
+    all_costPerFrame = np.loadtxt(outputFileName, delimiter=',')
+    all_costPerFrame = np.array(all_costPerFrame.T)
+
+    vestCost_costPerFrame = [0 for i in range(search_Data.totalFrame)]
+    vestTango_costPerFrame = [0 for i in range(search_Data.totalFrame)]
+    for target_dataNum in range(len(target_DataBase.AllDataNum)): # ファイル名に数字以外が含まれなければrangeは無くて良い
+        target_dataNum = int(target_dataNum)
+        costPerFrame = all_costPerFrame[target_dataNum]
+        for frameNum in range(len(vestCost_costPerFrame)):
+            if vestCost_costPerFrame[frameNum] < costPerFrame[frameNum]:
+                vestCost_costPerFrame[frameNum] = costPerFrame[frameNum]
+                vestTango_costPerFrame[frameNum] = target_dataNum
+        print("tango " + str(target_dataNum) + " procces ended")
+
+    np.savetxt(outputFileName2, vestTango_costPerFrame)
+
+
 def execute():
     
     while True:
 
-        
+
+        try:
+            dataNum = int(input("data number is (0~153):"))
+        except:
+            break
+
+        try:
+            isSide = str(input("r of l:"))
+        except:
+            break
+
+        try:
+            indexNum = int(input("index is (0~41):"))
+        except:
+            break
+
+
 
         use_spring = UseSpring()
 
@@ -654,23 +836,23 @@ def execute():
         """
         X = []
         Y = []
-        indexNum = 4 # 0~41
-        isSide = 'r' # l or r
-        dataNum = 10
+        #indexNum = 4 # 0~41
+        #isSide = 'r' # l or r
+        #dataNum = 33
 
         
 
         if isSide == 'l':
-            velocity_TShandData = search_Data.Velocity_TShandData_L
+            velocity_TShandData = search_Data.wristVelAndJointPos_TShandData_L
         elif isSide == 'r':
-            velocity_TShandData = search_Data.Velocity_TShandData_R
+            velocity_TShandData = search_Data.wristVelAndJointPos_TShandData_R
         for frameNum, velocity_handData in enumerate(velocity_TShandData): # 全時系列データから特定のインデックスのみを時系列順に取り出す
             X.append(velocity_handData[indexNum])
         
         if isSide == 'l':
-            velocity_TShandData = target_DataBase.AllVelocity_TShandData_L[dataNum]
+            velocity_TShandData = target_DataBase.AllwristVelAndJointPos_TShandData_L[dataNum]
         elif isSide == 'r':
-            velocity_TShandData = target_DataBase.AllVelocity_TShandData_R[dataNum]
+            velocity_TShandData = target_DataBase.AllwristVelAndJointPos_TShandData_R[dataNum]
         for frameNum, velocity_handData in enumerate(velocity_TShandData):
             Y.append(velocity_handData[indexNum])
 
@@ -686,14 +868,15 @@ def execute():
         use_spring.target_data = Y
         use_spring.search_data = X
         #use_spring.PATH_TH = 3000 # 出力パスの最大合計スコア
-        use_spring.FRAME_TH = 5 # 出力パスの最低経由フレーム数
+        use_spring.FRAME_TH = 10 # 出力パスの最低経由フレーム数
         
 
         use_spring.mySpring()
 
-        
+        #use_spring.dtw()
 
         use_spring.plot_path()
+
         #use_spring.plot_connection()
 
 
@@ -704,7 +887,8 @@ if __name__ == "__main__":
     userDir = "C:/Users/root/Desktop/hisa_reserch/"
     tango_data_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/tango/"
     bunsyo_data_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/bunsyo/"
-    outputFileName = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/similarWords.csv"
+    outputFileName = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/searchResults.csv"
+    outputFileName2 = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/searchResultsVest.csv"
 
     target_DataBase = TargetDataBase() # データベース用意
     search_Data = SearchData()
@@ -714,8 +898,10 @@ if __name__ == "__main__":
 
     time_calc = time.perf_counter()
 
+    #outputVest()
     #all_calc()
-    calc_tangoCost(157)
-    #execute()
+    #calc_tangoCost(33)
+    execute()
 
     #plt_originalData()
+

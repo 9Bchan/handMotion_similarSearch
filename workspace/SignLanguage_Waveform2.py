@@ -224,7 +224,7 @@ def outputCsv_TimeSeries_HandData(videoName ,TimeSeries_HandData):
 if __name__ == "__main__":
     
     tango_videoPath_dir = "C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video/bunsyo/"
-    output_dir = "C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/TimeSeries_HandPositionData/bunsyo/"
+    output_dir = "C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/TimeSeries_HandData2/bunsyo/"
 
     #MediaPipe周辺設定
     mp_drawing = mp.solutions.drawing_utils
@@ -260,7 +260,7 @@ if __name__ == "__main__":
     isVecsum = True
     isCam = False
 
-    #waveform_handdata("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video/bunsyo/1.mp4", "1")
-    createAll_waveform_handdata()
+    waveform_handdata("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video/bunsyo/4.mp4", "1")
+    #createAll_waveform_handdata()
 
     print("ended")

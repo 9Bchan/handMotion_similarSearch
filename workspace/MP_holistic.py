@@ -3,8 +3,8 @@ import mediapipe as mp
 
 
 def cam_MP():
-    cap = cv2.VideoCapture("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video_part/bunsyo/4.mp4")
-    #"C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video_part/tango/33.mp4"
+    #cap = cv2.VideoCapture("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video_part/bunsyo/4.mp4")
+    cap = cv2.VideoCapture("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video_part/tango/33.mp4")
     #C:/Users/hisa/Desktop/research/
     frame_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     frame_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
@@ -29,13 +29,16 @@ def cam_MP():
             '''
             mp_drawing.draw_landmarks(
                 frame, holistic_results.face_landmarks, mp_holistic.FACE_CONNECTIONS)'''
+            
             mp_drawing.draw_landmarks(
                 frame, holistic_results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
             mp_drawing.draw_landmarks(
                 frame, holistic_results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
+            
+            '''
             mp_drawing.draw_landmarks(
-                frame, holistic_results.pose_landmarks, mp_holistic.POSE_CONNECTIONS)
-
+                frame, holistic_results.pose_landmarks, mp_holistic.POSE_CONNECTIONS)'''
+            '''
             if holistic_results.right_hand_landmarks is not None:
                 rightHand_randmarks = holistic_results.right_hand_landmarks.landmark
                 rightWrist_randmarks = rightHand_randmarks[0]
@@ -60,7 +63,7 @@ def cam_MP():
                             color=(255, 100, 0),
                             thickness=6,
                             lineType=cv2.LINE_4)
-            
+            '''
 
             cv2.imshow("MP_holistic",frame)
             print(cap.get(cv2.CAP_PROP_POS_FRAMES))
