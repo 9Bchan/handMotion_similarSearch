@@ -3,8 +3,8 @@ import mediapipe as mp
 
 
 def cam_MP():
-    #cap = cv2.VideoCapture("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video_part/bunsyo/4.mp4")
-    cap = cv2.VideoCapture("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video_part/tango/33.mp4")
+    cap = cv2.VideoCapture("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video_part/bunsyo/4.mp4")
+    #cap = cv2.VideoCapture("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video_part/tango/33.mp4")
     #C:/Users/hisa/Desktop/research/
     frame_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     frame_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
@@ -66,7 +66,9 @@ def cam_MP():
             '''
 
             cv2.imshow("MP_holistic",frame)
-            print(cap.get(cv2.CAP_PROP_POS_FRAMES))
+
+            currentFrame = cap.get(cv2.CAP_PROP_POS_FRAMES)
+            print(currentFrame)
 
             
             key = cv2.waitKey(isStop)
@@ -86,6 +88,9 @@ def cam_MP():
                 if cap.get(cv2.CAP_PROP_POS_FRAMES) > endFrame:
                     cap.set(cv2.CAP_PROP_POS_FRAMES, startFrame)
             
+            if key & 0xFF == ord('b'):
+                cap.set(cv2.CAP_PROP_POS_FRAMES, currentFrame - 2)
+
             if key & 0xFF == ord('q'):
                 break
     

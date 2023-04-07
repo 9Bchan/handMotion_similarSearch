@@ -61,3 +61,93 @@
             #print(self.paths)
         self.dataCost = D
 
+
+
+def execute():
+    
+    while True:
+        use_spring = UseSpring()
+        X = []
+        Y = []
+        indexNum = 1 # 0~41
+        isSide = 'r' # l or r
+        dataNum = 33
+
+        
+
+        if isSide == 'l':
+            velocity_TShandData = search_Data.Velocity_TShandData_L
+        elif isSide == 'r':
+            velocity_TShandData = search_Data.Velocity_TShandData_R
+        for frameNum, velocity_handData in enumerate(velocity_TShandData): # 全時系列データから特定のインデックスのみを時系列順に取り出す
+            X.append(velocity_handData[indexNum])
+        
+        if isSide == 'l':
+            velocity_TShandData = target_DataBase.AllVelocity_TShandData_L[dataNum]
+        elif isSide == 'r':
+            velocity_TShandData = target_DataBase.AllVelocity_TShandData_R[dataNum]
+        for frameNum, velocity_handData in enumerate(velocity_TShandData):
+            Y.append(velocity_handData[indexNum])
+
+
+
+    
+        try:
+            use_spring.PATH_TH = int(input("path th is :"))
+        except:
+            break
+        
+        use_spring.search_data_usedFrames = search_Data.usedFrames
+        use_spring.target_data = Y
+        use_spring.search_data = X
+        #use_spring.PATH_TH = 3000 # 出力パスの最大合計スコア
+        use_spring.FRAME_TH = -1 # 出力パスの最低経由フレーム数
+        
+
+        use_spring.mySpring()
+
+        
+
+        use_spring.plot_path()
+
+
+    def plot_path(self):
+        paths = self.paths
+        costs = self.costs
+
+        a = self.search_data
+        b = self.target_data
+        #D = self.dataDist.T # グラフ背景に使用する行列
+        D = (self.dataCost.T)
+
+        plt.figure(figsize=(5,5))
+        gs = gridspec.GridSpec(2, 2,
+                        width_ratios=[1,5],
+                        height_ratios=[5,1]
+                        )
+        ax1 = plt.subplot(gs[0])
+        ax2 = plt.subplot(gs[1])
+        ax4 = plt.subplot(gs[3])
+
+        ax2.pcolor(D, cmap=plt.cm.Blues)
+        ax2.get_xaxis().set_ticks([])
+        ax2.get_yaxis().set_ticks([])
+        
+        totalPathNum = 0
+        maxcost = 0
+        for pathNum, path in enumerate(paths):
+            path_start = path[0]
+            path_end = path[len(path) - 1]
+
+            totalPathNum = totalPathNum + 1
+
+            ax2.plot(path[:,0]+0.5, path[:,1]+0.5, c="C3")
+            springPathLen = len(path)
+            if maxcost < costs[pathNum]:
+                maxcost = costs[pathNum] 
+
+            frame_start = self.search_data_usedFrames[path[springPathLen-1][0]]
+            frame_end = self.search_data_usedFrames[path[0][0]]
+            print("frame : "+ str(frame_start) +" ~ "+ str(frame_end) + " | cost : " + str(costs[pathNum]))
+        print("total detected path : "+ str(totalPathNum))
+        print("max cost is : "+ str(maxcost))

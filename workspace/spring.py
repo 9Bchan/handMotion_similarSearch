@@ -138,8 +138,10 @@ class Treat_timeSeriesHandData():
             csvreader = csv.reader(f)
             timeSeries_handData = [row for row in csvreader] # 一行目:ラベル 二行目以降:フレーム毎の左右のハンドデータ
 
-            NUMOF_CUTFRAME_ST = 20
-            NUMOF_CUTFRAME_ED = 30
+            NUMOF_CUTFRAME_ST = 1
+            NUMOF_CUTFRAME_ED = 1
+            #NUMOF_CUTFRAME_ST = 20
+            #NUMOF_CUTFRAME_ED = 30
 
             labelsData = timeSeries_handData[0] 
             if self.labels is None:
@@ -536,8 +538,8 @@ class UseSpring():
 
         a = self.search_data
         b = self.target_data
-        #D = self.dataDist # グラフ背景に使用する行列
-        D = (self.dataCost.T)
+        D = self.dataDist # グラフ背景に使用する行列
+        #D = (self.dataCost.T)
 
         plt.figure(figsize=(5,5))
         gs = gridspec.GridSpec(2, 2,
@@ -880,27 +882,40 @@ def execute():
         #use_spring.plot_connection()
 
 
+def test_igo(userDir):
+    tango_data_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/tango/"
+    bunsyo_data_filePath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/bunsyo/4.csv" #
+    targetNum = 154
+    return tango_data_dirPath, bunsyo_data_filePath, targetNum
+
+def test_inu(userDir):
+    tango_data_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/tango/"
+    bunsyo_data_filePath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/bunsyo/6.csv" # 父/犬/好き//家/犬/3/世話/(指差し)
+    targetNum = 155
+    return tango_data_dirPath, bunsyo_data_filePath, targetNum
 
 if __name__ == "__main__":
     time_start = time.perf_counter()
     #userDir = "C:/Users/hisa/Desktop/research/"
     userDir = "C:/Users/root/Desktop/hisa_reserch/"
-    tango_data_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/tango/"
-    bunsyo_data_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/bunsyo/"
+    #tango_data_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/tango/"
+    #bunsyo_data_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/bunsyo/"
     outputFileName = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/searchResults.csv"
     outputFileName2 = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/searchResultsVest.csv"
 
     target_DataBase = TargetDataBase() # データベース用意
     search_Data = SearchData()
 
+    tango_data_dirPath, bunsyo_data_filePath, targetNum = test_inu(userDir)
+
     load_targetData(tango_data_dirPath)
-    load_searchData(bunsyo_data_dirPath + "4.csv")
+    load_searchData(bunsyo_data_filePath)
 
     time_calc = time.perf_counter()
 
     #outputVest()
     #all_calc()
-    #calc_tangoCost(33)
+    #calc_tangoCost(targetNum)
     execute()
 
     #plt_originalData()
