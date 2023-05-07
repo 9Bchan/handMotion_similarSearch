@@ -166,7 +166,7 @@ class Treat_timeSeriesHandData():
                     self.skippedFrameNums.append(skpCnt)
                     skpCnt = 1
                 else:
-                    skpCnt = skpCnt +1 
+                    skpCnt = skpCnt + 1 
             
             #self.totalFrame = len(self.position_TShandData_L) 0.6695 - 0.73
             self.totalIndex = len(self.position_TShandData_L[0])
