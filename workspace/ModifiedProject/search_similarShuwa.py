@@ -2,15 +2,17 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import numpy as np
+import os
 # my code
 import partial_DTW
 import load_handData
+import myfunc
 
 def output_result(list_2d):
     list_2d = list_2d.T
     sns.heatmap(list_2d)
     plt.show()
-    
+
 
 def handElement_calc():
     isManual = True
@@ -50,6 +52,9 @@ def handElement_calc():
     for frameNum, velocity_handData in enumerate(wristVelAndJointPos):
         Y.append(velocity_handData[indexNum])
 
+    myfunc.printline(Y)
+    os.sys.exit()
+
     
 
     calc_partialDtw = partial_DTW.Calc_PartialDtw()
@@ -61,15 +66,15 @@ def handElement_calc():
     
     calc_partialDtw.spring()
 
-    #print(calc_partialDtw.costMatrix)
+    #myfunc.printline(calc_partialDtw.costMatrix)
     output_result(calc_partialDtw.costMatrix)
-    #print("as")
+    #myfunc.printline("as")
 
     #partial_DTW.plot_path()
 
 if __name__ == '__main__':
-    userDir = "C:/Users/hisa/Desktop/research/"
-    #userDir = "C:/Users/root/Desktop/hisa_reserch/"
+    #userDir = "C:/Users/hisa/Desktop/research/"
+    userDir = "C:/Users/root/Desktop/hisa_reserch/"
     keyData_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/tango/"
     tgtData_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/bunsyo/"
 
@@ -81,7 +86,7 @@ if __name__ == '__main__':
     load_handData.load_keyAndTgtData(keyData_dirPath, tgtData_dirPath, keyDataBase, tgtDataBase) # 指定パス内のファイルから値を読み込みデータベースに格納
     
 
-    #print(keyDataBase.AllwristVelAndJointPos_L)
+    #myfunc.printline(keyDataBase.AllwristVelAndJointPos_L)
     handElement_calc()
 
     

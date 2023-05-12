@@ -1,5 +1,5 @@
 import numpy as np
-
+import myfunc
 
 key_data = None # key data
 tgt_data = None # tgt data 
@@ -58,7 +58,7 @@ class Calc_PartialDtw():
 
 
     def spring(self):
-        print("Start calculation by spring...")
+        myfunc.printline("Start calculation by spring...")
         x = self.tgt_data # 検索される対象(ターゲット)
         y = self.key_data # 検索キー
         #dataDist = np.array(x).reshape(1, -1)**2 + np.array(y).reshape(-1, 1)**2
@@ -66,8 +66,8 @@ class Calc_PartialDtw():
 
         len_x = len(x)
         len_y = len(y)
-        print(len_x)
-        print(len_y)
+        myfunc.printline(len_x)
+        myfunc.printline(len_y)
 
         costM = np.zeros((len_x, len_y))            # 合計距離行列 各点におけるパス開始点までの最短合計コストを保存
         pathM = np.zeros((len_x, len_y, 2), int)    # パス連結行列 各点において，その点を通るパスのひとつ前の点(連結関係)を保存
@@ -104,7 +104,7 @@ class Calc_PartialDtw():
 
             '''
             imin = np.argmin(costM[:(i+1), -1]) # リストの先頭からi+1の範囲
-            #print(imin)
+            #myfunc.printline(imin)
 
             dmin = costM[imin, -1]
 
@@ -132,14 +132,14 @@ class Calc_PartialDtw():
                 original_path = np.array(path)
 
                 path_head = original_path[0]
-                #print(len(original_path))
-                #print(len_y - 1)
+                #myfunc.printline(len(original_path))
+                #myfunc.printline(len_y - 1)
 
                 path_tail = original_path[len(original_path) - 1]
                 #path_tail = original_path[len_y - 1]
-                #print(len_y)
+                #myfunc.printline(len_y)
 
-                #print((path_head[0] - path_tail[0]))
+                #myfunc.printline((path_head[0] - path_tail[0]))
 
                 #if int((path_head[0] - path_tail[0])) > FRAME_TH: # パスが指定フレーム数をまたがないときは出力しない
                 paths.append(np.array(path))
@@ -147,4 +147,4 @@ class Calc_PartialDtw():
             '''
         dataCost = costM
         self.costMatrix = costM
-        print("Completed")
+        myfunc.printline("Completed")
