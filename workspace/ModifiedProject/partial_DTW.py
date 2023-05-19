@@ -56,7 +56,6 @@ class Calc_PartialDtw():
             else:
                 return i - 1, j - 1, m2
 
-
     def spring(self):
         myfunc.printline("Start calculation by spring...")
         x = self.tgt_data # 検索される対象(ターゲット)
@@ -148,3 +147,5 @@ class Calc_PartialDtw():
         dataCost = costM
         self.costMatrix = costM
         myfunc.printline("Completed")
+    
+    def 
