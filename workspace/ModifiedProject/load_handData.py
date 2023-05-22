@@ -47,7 +47,7 @@ class Process_handData():
                     '10x_R', '10y_R', '11x_R', '11y_R', '12x_R', '12y_R', '13x_R', '13y_R', '14x_R', '14y_R', '15x_R', '15y_R', '16x_R', '16y_R', '17x_R', '17y_R', '18x_R', '18y_R', '19x_R', '19y_R', '20x_R', '20y_R']
         posInImg_excNone_df = posInImg_df[(~posInImg_df['0x_L'].str.contains('None')) & (~posInImg_df['0x_R'].str.contains('None'))] # Noneを含む行を排除
         #myfunc.printlist(posInImg_excNone_df)
-        #posInImg_excNone_df = posInImg_excNone_df.reset_index(drop=True) # index番号降り直し
+        posInImg_excNone_df = posInImg_excNone_df.reset_index(drop=True) # index番号降り直し
         posInImg_excNone_df_colSize = posInImg_excNone_df.shape[0] - 1 # 0からカウントした列サイズ
         
         # フレーム毎手首位置移動量計算
@@ -58,11 +58,12 @@ class Process_handData():
         vel_excNone_df = posInImg_excNone_df_part.reset_index(drop=True) - posInImg_excNone_df_prev.reset_index(drop=True) # 一つ前のフレームからの移動量を計算　(index番号をそろえて行列差を取る)
         vel_excNone_df.index = vel_excNone_df.index + 1 # index番号をフレーム番号に対応させてる
         """
-        posInImg_excNone_df_part = (posInImg_excNone_df.loc[0:posInImg_excNone_df_colSize, wrist_list]).astype(float) # 指定した列名（手首情報）の列を取得
+        posInImg_excNone_df_part = (posInImg_excNone_df.loc[1:posInImg_excNone_df_colSize, wrist_list]).astype(float) # 指定した列名（手首情報）の列を取得
         vel_excNone_df = (posInImg_excNone_df_part.diff()).loc[1:posInImg_excNone_df_colSize,:] # 一つ前のフレームからの移動量を計算　(行間の差)（0フレーム目は計算できないためカット）
         #myfunc.printlist(vel_excNone_df)
 
         # 手首からのベクトル計算
+        frameNum_excNone_df_part = (posInImg_excNone_df.loc[0:posInImg_excNone_df_colSize, 'frame']).astype(int) # 指定した列名（フレーム）の列を取得
         joint_x_L_list = ['1x_L', '2x_L', '3x_L', '4x_L', '5x_L', '6x_L', '7x_L', '8x_L', '9x_L', '10x_L', '11x_L', '12x_L', '13x_L', '14x_L', '15x_L', '16x_L', '17x_L', '18x_L', '19x_L', '20x_L'] # 手首を除いた手指関節ラベル
         posInImg_excNone_x_L_df = posInImg_excNone_df.loc[1:posInImg_excNone_df_colSize, joint_x_L_list].astype(float) # （手首速度行列とサイズを合わせるため0フレーム目はカット）
         posFrmWrist_excNone_x_L_df = posInImg_excNone_x_L_df.copy()
@@ -86,7 +87,7 @@ class Process_handData():
         
         
 
-        myfunc.printlist(posFrmWrist_excNone_y_R_df)
+        myfunc.printlist(frameNum_excNone_df_part)
 
 
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -275,7 +276,8 @@ tgtDataBase = HandDataBase()
 '''
 # テスト用
 if __name__ == '__main__':
-    userDir = "C:/Users/root/Desktop/hisa_reserch/"
+    userDir = "C:/Users/hisa/Desktop/research/"
+    #userDir = "C:/Users/root/Desktop/hisa_reserch/"
     keyData_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/"
     tgtData_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/"
     keyData_Path = keyData_dirPath + "test.csv"

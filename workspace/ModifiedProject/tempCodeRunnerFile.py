@@ -1,1 +1,0 @@
-myfunc.printlist(vel_excNone_df_prev)
