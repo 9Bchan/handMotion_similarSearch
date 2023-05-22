@@ -38,29 +38,56 @@ class Process_handData():
         self.frameWidth = FRAME_WIDTH
         self.frameHeight = FRAME_HEIGHT
     
-    def load_PositionData(self, path):
+    def load_HandData(self, path):
         posInImg_df = pd.read_csv(path) # 画像中の手の関節位置データ取得
+        # 行名:時系列順番号 列名:以下
         posInImg_df.columns = ['frame', '0x_L', '0y_L', '1x_L', '1y_L', '2x_L', '2y_L', '3x_L', '3y_L', '4x_L', '4y_L', '5x_L', '5y_L', '6x_L', '6y_L', '7x_L', '7y_L', '8x_L', '8y_L', '9x_L', '9y_L',
                     '10x_L', '10y_L', '11x_L', '11y_L', '12x_L', '12y_L', '13x_L', '13y_L', '14x_L', '14y_L', '15x_L', '15y_L', '16x_L', '16y_L', '17x_L', '17y_L', '18x_L', '18y_L', '19x_L', '19y_L', '20x_L', '20y_L',
                     '0x_R', '0y_R', '1x_R', '1y_R', '2x_R', '2y_R', '3x_R', '3y_R', '4x_R', '4y_R', '5x_R', '5y_R', '6x_R', '6y_R', '7x_R', '7y_R', '8x_R', '8y_R', '9x_R', '9y_R',
                     '10x_R', '10y_R', '11x_R', '11y_R', '12x_R', '12y_R', '13x_R', '13y_R', '14x_R', '14y_R', '15x_R', '15y_R', '16x_R', '16y_R', '17x_R', '17y_R', '18x_R', '18y_R', '19x_R', '19y_R', '20x_R', '20y_R']
         posInImg_excNone_df = posInImg_df[(~posInImg_df['0x_L'].str.contains('None')) & (~posInImg_df['0x_R'].str.contains('None'))] # Noneを含む行を排除
-        posInImg_excNone_df = posInImg_excNone_df.reset_index(drop=True) # index番号降り直し
+        #myfunc.printlist(posInImg_excNone_df)
+        #posInImg_excNone_df = posInImg_excNone_df.reset_index(drop=True) # index番号降り直し
         posInImg_excNone_df_colSize = posInImg_excNone_df.shape[0] - 1 # 0からカウントした列サイズ
         
-        # フレーム毎手首位置移動量取得
+        # フレーム毎手首位置移動量計算
         wrist_list = ['0x_L', '0y_L', '0x_R', '0y_R']
-        wrist = ['0x_L', '0y_L', '0x_R', '0y_R']
-        #for wrist in wrist_list:
-        posInImg_excNone_df_part = (posInImg_excNone_df.loc[1:posInImg_excNone_df_colSize, wrist_list]).astype(float)
-        posInImg_excNone_df_prev = (posInImg_excNone_df.loc[0:posInImg_excNone_df_colSize - 1, wrist_list]).astype(float)
-        vel_excNone_df_prev = posInImg_excNone_df_part.reset_index(drop=True) - posInImg_excNone_df_prev.reset_index(drop=True) # 一つ前のフレームからの移動量を計算　(index番号をそろえてから計算)
-        vel_excNone_df_prev.index = vel_excNone_df_prev.index + 1 # index番号をフレーム番号に対応させてる
-        print(vel_excNone_df_prev)
+        """ # 次の処理と等価
+        posInImg_excNone_df_part = (posInImg_excNone_df.loc[1:posInImg_excNone_df_colSize, wrist_list]).astype(float) # 指定した列名（手首情報）の列を取得
+        posInImg_excNone_df_prev = (posInImg_excNone_df.loc[0:posInImg_excNone_df_colSize - 1, wrist_list]).astype(float) # 指定した列名（手首情報）の列を1フレームずらして取得
+        vel_excNone_df = posInImg_excNone_df_part.reset_index(drop=True) - posInImg_excNone_df_prev.reset_index(drop=True) # 一つ前のフレームからの移動量を計算　(index番号をそろえて行列差を取る)
+        vel_excNone_df.index = vel_excNone_df.index + 1 # index番号をフレーム番号に対応させてる
+        """
+        posInImg_excNone_df_part = (posInImg_excNone_df.loc[0:posInImg_excNone_df_colSize, wrist_list]).astype(float) # 指定した列名（手首情報）の列を取得
+        vel_excNone_df = (posInImg_excNone_df_part.diff()).loc[1:posInImg_excNone_df_colSize,:] # 一つ前のフレームからの移動量を計算　(行間の差)（0フレーム目は計算できないためカット）
+        #myfunc.printlist(vel_excNone_df)
 
-        # 手首からのベクトル取得
-        hand_L_list = posInImg_excNone_df.columns.str.contains('L')
-        posInImg_excNone_df_L = posInImg_excNone_df.loc[:, posInImg_excNone_df.columns.str.contains('L')]
+        # 手首からのベクトル計算
+        joint_x_L_list = ['1x_L', '2x_L', '3x_L', '4x_L', '5x_L', '6x_L', '7x_L', '8x_L', '9x_L', '10x_L', '11x_L', '12x_L', '13x_L', '14x_L', '15x_L', '16x_L', '17x_L', '18x_L', '19x_L', '20x_L'] # 手首を除いた手指関節ラベル
+        posInImg_excNone_x_L_df = posInImg_excNone_df.loc[1:posInImg_excNone_df_colSize, joint_x_L_list].astype(float) # （手首速度行列とサイズを合わせるため0フレーム目はカット）
+        posFrmWrist_excNone_x_L_df = posInImg_excNone_x_L_df.copy()
+        for jointLabel in joint_x_L_list:
+            posFrmWrist_excNone_x_L_df[jointLabel] = posInImg_excNone_x_L_df[jointLabel] - posInImg_excNone_df_part['0x_L']
+        joint_y_L_list = ['1y_L', '2y_L', '3y_L', '4y_L', '5y_L', '6y_L', '7y_L', '8y_L', '9y_L', '10y_L', '11y_L', '12y_L', '13y_L', '14y_L', '15y_L', '16y_L', '17y_L', '18y_L', '19y_L', '20y_L'] # 手首を除いた手指関節ラベル
+        posInImg_excNone_y_L_df = posInImg_excNone_df.loc[1:posInImg_excNone_df_colSize, joint_y_L_list].astype(float) # （手首速度行列とサイズを合わせるため0フレーム目はカット）
+        posFrmWrist_excNone_y_L_df = posInImg_excNone_y_L_df.copy()
+        for jointLabel in joint_y_L_list:
+            posFrmWrist_excNone_y_L_df[jointLabel] = posInImg_excNone_y_L_df[jointLabel] - posInImg_excNone_df_part['0y_L']
+        joint_x_R_Rist = ['1x_R', '2x_R', '3x_R', '4x_R', '5x_R', '6x_R', '7x_R', '8x_R', '9x_R', '10x_R', '11x_R', '12x_R', '13x_R', '14x_R', '15x_R', '16x_R', '17x_R', '18x_R', '19x_R', '20x_R'] # 手首を除いた手指関節ラベル
+        posInImg_excNone_x_R_df = posInImg_excNone_df.loc[1:posInImg_excNone_df_colSize, joint_x_R_Rist].astype(float) # （手首速度行列とサイズを合わせるため0フレーム目はカット）
+        posFrmWrist_excNone_x_R_df = posInImg_excNone_x_R_df.copy()
+        for jointLabel in joint_x_R_Rist:
+            posFrmWrist_excNone_x_R_df[jointLabel] = posInImg_excNone_x_R_df[jointLabel] - posInImg_excNone_df_part['0x_R']
+        joint_y_R_Rist = ['1y_R', '2y_R', '3y_R', '4y_R', '5y_R', '6y_R', '7y_R', '8y_R', '9y_R', '10y_R', '11y_R', '12y_R', '13y_R', '14y_R', '15y_R', '16y_R', '17y_R', '18y_R', '19y_R', '20y_R'] # 手首を除いた手指関節ラベル
+        posInImg_excNone_y_R_df = posInImg_excNone_df.loc[1:posInImg_excNone_df_colSize, joint_y_R_Rist].astype(float) # （手首速度行列とサイズを合わせるため0フレーム目はカット）
+        posFrmWrist_excNone_y_R_df = posInImg_excNone_y_R_df.copy()
+        for jointLabel in joint_y_R_Rist:
+            posFrmWrist_excNone_y_R_df[jointLabel] = posInImg_excNone_y_R_df[jointLabel] - posInImg_excNone_df_part['0y_R']
+        
+        
+
+        myfunc.printlist(posFrmWrist_excNone_y_R_df)
+
 
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -255,4 +282,4 @@ if __name__ == '__main__':
 
 
     process_handData = Process_handData()
-    process_handData.load_PositionData(keyData_Path)
+    process_handData.load_HandData(keyData_Path)
