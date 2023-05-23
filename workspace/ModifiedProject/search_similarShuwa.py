@@ -8,6 +8,7 @@ import partial_DTW
 import load_handData
 import myfunc
 
+
 def output_result(list_2d):
     list_2d = list_2d.T
     sns.heatmap(list_2d)
@@ -83,11 +84,15 @@ if __name__ == '__main__':
 
     keyDataBase = load_handData.HandDataBase() # データベース空箱
     tgtDataBase = load_handData.HandDataBase()
-    load_handData.load_keyAndTgtData(keyData_dirPath, tgtData_dirPath, keyDataBase, tgtDataBase) # 指定パス内のファイルから値を読み込みデータベースに格納
-    
+    #load_handData.load_keyAndTgtData(keyData_dirPath, tgtData_dirPath, keyDataBase, tgtDataBase) # 指定パス内のファイルから値を読み込みデータベースに格納
+    load_handData.loadToDataBase(keyData_dirPath, keyDataBase, 'key')
+    load_handData.loadToDataBase(tgtData_dirPath, tgtDataBase, 'target')
+
+
+    #myfunc.printlist(tgtDataBase.AllHandData_df)
 
     #myfunc.printline(keyDataBase.AllwristVelAndJointPos_L)
-    handElement_calc()
+    #handElement_calc()
 
     
 

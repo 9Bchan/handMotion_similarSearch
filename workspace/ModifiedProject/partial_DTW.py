@@ -148,4 +148,3 @@ class Calc_PartialDtw():
         self.costMatrix = costM
         myfunc.printline("Completed")
     
-    def 
