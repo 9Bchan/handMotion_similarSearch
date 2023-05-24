@@ -16,6 +16,9 @@ PATH_TH = None
 FRAME_TH = None
 dataCost = None
 
+len_x = 1
+len_y = 1
+
 
 costM = None
 pathM = None
@@ -65,8 +68,8 @@ class Calc_PartialDtw():
 
         len_x = len(x)
         len_y = len(y)
-        myfunc.printline(len_x)
-        myfunc.printline(len_y)
+        #myfunc.printline(len_x)
+        #myfunc.printline(len_y)
 
         costM = np.zeros((len_x, len_y))            # 合計距離行列 各点におけるパス開始点までの最短合計コストを保存
         pathM = np.zeros((len_x, len_y, 2), int)    # パス連結行列 各点において，その点を通るパスのひとつ前の点(連結関係)を保存

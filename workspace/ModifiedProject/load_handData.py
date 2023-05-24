@@ -20,24 +20,23 @@ tgtData_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandP
 #pd.set_option('display.max_rows', 500)
 #pd.set_option('display.max_columns', 100)
 
+# グローバル変数
+frameNumAndjointLabel =['frame', '0x_L', '0y_L', '1x_L', '1y_L', '2x_L', '2y_L', '3x_L', '3y_L', '4x_L', '4y_L', '5x_L', '5y_L', '6x_L', '6y_L', '7x_L', '7y_L', '8x_L', '8y_L', '9x_L', '9y_L',
+            '10x_L', '10y_L', '11x_L', '11y_L', '12x_L', '12y_L', '13x_L', '13y_L', '14x_L', '14y_L', '15x_L', '15y_L', '16x_L', '16y_L', '17x_L', '17y_L', '18x_L', '18y_L', '19x_L', '19y_L', '20x_L', '20y_L',
+            '0x_R', '0y_R', '1x_R', '1y_R', '2x_R', '2y_R', '3x_R', '3y_R', '4x_R', '4y_R', '5x_R', '5y_R', '6x_R', '6y_R', '7x_R', '7y_R', '8x_R', '8y_R', '9x_R', '9y_R',
+            '10x_R', '10y_R', '11x_R', '11y_R', '12x_R', '12y_R', '13x_R', '13y_R', '14x_R', '14y_R', '15x_R', '15y_R', '16x_R', '16y_R', '17x_R', '17y_R', '18x_R', '18y_R', '19x_R', '19y_R', '20x_R', '20y_R']
+
+
 # データ保存用クラス
 class HandDataBase():
     def __init__(self):
-        self.AllwristVelAndJointPos_L = [] # 手の情報（手首速度+手首からの手指関節）　[データ名][フレーム][要素(0~41)]　
-        self.AllwristVelAndJointPos_R = []
         self.AllHandData_df = []
-        self.AllusedFrames = []
-        self.AllDataNum = []
+        self.AllFileNames = []
         self.labels = None
 
 def load_HandData(path):
         posInImg_df = pd.read_csv(path, dtype=str) # 画像中の手の関節位置データ取得
-        # 行名:時系列順番号 列名:以下
-        frameNumAndjointLabel =['frame', '0x_L', '0y_L', '1x_L', '1y_L', '2x_L', '2y_L', '3x_L', '3y_L', '4x_L', '4y_L', '5x_L', '5y_L', '6x_L', '6y_L', '7x_L', '7y_L', '8x_L', '8y_L', '9x_L', '9y_L',
-                    '10x_L', '10y_L', '11x_L', '11y_L', '12x_L', '12y_L', '13x_L', '13y_L', '14x_L', '14y_L', '15x_L', '15y_L', '16x_L', '16y_L', '17x_L', '17y_L', '18x_L', '18y_L', '19x_L', '19y_L', '20x_L', '20y_L',
-                    '0x_R', '0y_R', '1x_R', '1y_R', '2x_R', '2y_R', '3x_R', '3y_R', '4x_R', '4y_R', '5x_R', '5y_R', '6x_R', '6y_R', '7x_R', '7y_R', '8x_R', '8y_R', '9x_R', '9y_R',
-                    '10x_R', '10y_R', '11x_R', '11y_R', '12x_R', '12y_R', '13x_R', '13y_R', '14x_R', '14y_R', '15x_R', '15y_R', '16x_R', '16y_R', '17x_R', '17y_R', '18x_R', '18y_R', '19x_R', '19y_R', '20x_R', '20y_R']
-        posInImg_df.columns =  frameNumAndjointLabel
+        posInImg_df.columns = frameNumAndjointLabel
         posInImg_excNone_df = posInImg_df[(~posInImg_df['0x_L'].str.contains('None')) & (~posInImg_df['0x_R'].str.contains('None'))] # Noneを含む行を排除
         posInImg_excNone_df = posInImg_excNone_df.reset_index(drop=True) # index番号降り直し
         posInImg_excNone_df_colSize = posInImg_excNone_df.shape[0] - 1 # 0からカウントした列サイズ
@@ -77,7 +76,6 @@ def load_HandData(path):
         #myfunc.printlist(posFrmWrist_excNone_x_R_df)
         #myfunc.printlist(posFrmWrist_excNone_y_R_df)
 
-
         handData_df = pd.DataFrame(columns=frameNumAndjointLabel)
         handData_df['frame'] = frameNum_excNone_df[1:]
         handData_df[wrist_list] = vel_excNone_df[wrist_list]
@@ -103,11 +101,22 @@ def loadToDataBase(dirPath, handDataBase, label):
             
             # データベース登録
             handDataBase.AllHandData_df.append(handData_df)
-            handDataBase.AllDataNum.append(fileName)
+            handDataBase.AllFileNames.append(fileName)
 
             #print(filePath)
             #print(handData_df)
+            
+    myfunc.printline("Completed")
 
+def loadToDataBase_one(dirPath, handDataBase, label, data_filePath):
+    myfunc.printline("Start loading " + label + " data...")
+
+    handData_df = load_HandData(data_filePath)
+    fileName = os.path.splitext(os.path.basename(data_filePath))[0]
+    
+    # データベース登録
+    handDataBase.AllHandData_df.append(handData_df)
+    handDataBase.AllFileNames.append(fileName)
 
     myfunc.printline("Completed")
 
@@ -117,14 +126,6 @@ def atoi(text):
 def natural_keys(text):
     return [ atoi(c) for c in re.split(r'(\d+)', text) ]
 
-
-
-'''
-load_keyAndTgtData(keyData_dirPath, tgtData_dirPath)
-keyDataBase = HandDataBase()
-tgtDataBase = HandDataBase()
-
-'''
 # テスト用
 if __name__ == '__main__':
     #userDir = "C:/Users/hisa/Desktop/research/"
@@ -132,6 +133,3 @@ if __name__ == '__main__':
     keyData_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/"
     tgtData_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/"
     keyData_Path = keyData_dirPath + "test.csv"
-
-
-    #process_handData.load_HandData(keyData_Path)
