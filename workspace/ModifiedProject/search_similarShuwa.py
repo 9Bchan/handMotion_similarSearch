@@ -80,7 +80,7 @@ def handElement_calc():
 
 
         for path_Xrange in path_Xrange_list:
-            print("{} ~ {}".format(path_Xrange[0], path_Xrange[1]))
+            print("range : {} ~ {} | cost : {} ".format(path_Xrange[0], path_Xrange[1], path_Xrange[2]))
             pass
 
         graphs(calc_partialDtw.costMatrix, X, Y, path_list)
@@ -93,8 +93,8 @@ def handElement_calc():
     #partial_DTW.plot_path()
 
 if __name__ == '__main__':
-    #userDir = "C:/Users/hisa/Desktop/research/"
-    userDir = "C:/Users/root/Desktop/hisa_reserch/"
+    userDir = "C:/Users/hisa/Desktop/research/"
+    #userDir = "C:/Users/root/Desktop/hisa_reserch/"
     keyData_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/tango/"
     tgtData_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/bunsyo/"
 
