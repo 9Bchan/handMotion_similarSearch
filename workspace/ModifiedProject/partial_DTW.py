@@ -1,5 +1,6 @@
 import numpy as np
 import myfunc
+import os
 
 key_data = None # key data
 tgt_data = None # tgt data 
@@ -42,6 +43,9 @@ class Calc_PartialDtw():
         pathMatrix = None
         headMatrix = None
 
+        len_x = 1
+        len_y = 1
+
     # 距離計算
     def get_dist(self, x, y):
         return np.sqrt((x-y)**2) # ユークリッド距離
@@ -64,7 +68,7 @@ class Calc_PartialDtw():
         x = self.tgt_data # 検索される対象(ターゲット)
         y = self.key_data # 検索キー
         #dataDist = np.array(x).reshape(1, -1)**2 + np.array(y).reshape(-1, 1)**2
-        dataDist = np.sqrt((np.array(x).reshape(1, -1) - np.array(y).reshape(-1, 1))**2)
+        #dataDist = np.sqrt((np.array(x).reshape(1, -1) - np.array(y).reshape(-1, 1))**2)
 
         len_x = len(x)
         len_y = len(y)
@@ -103,6 +107,9 @@ class Calc_PartialDtw():
 
             # ↑各種行列生成 
             # ↓パスの選択
+            
+            
+            
 
             '''
             imin = np.argmin(costM[:(i+1), -1]) # リストの先頭からi+1の範囲
@@ -149,5 +156,32 @@ class Calc_PartialDtw():
             '''
         dataCost = costM
         self.costMatrix = costM
+        self.pathMatrix = pathM
+        self.headMatrix = headM
+        self.len_x = len_x
+        self.len_y = len_y
         myfunc.printline("Completed")
     
+
+    def path_select(self):
+        costM = self.costMatrix
+        pathM = self.pathMatrix
+        headM = self.headMatrix
+
+        below_pathTH_i = np.where((costM[:, -1] < 0.4)) # return (list, type)　しきい値以下のコストを持つパスを取得
+        #print(pathM[0, -1])
+        #print(below_pathTH_i[0])
+        path_list = []
+        path_Xrange_list = []
+        for i in below_pathTH_i[0]: # 
+            path_Xrange_list.append([headM[i, -1], i]) # [開始フレーム, 終了フレーム]
+            j = self.len_y - 1
+            path_conn = [[i,j]]
+            while pathM[i, j][1] != 0: # パスの終了地点から開始点までたどる
+                i = pathM[i, j][0]
+                j = pathM[i, j][1]
+                path_conn.append([i,j]) # 通過したマスを保存
+            path_list.append(path_conn)
+            
+
+        return path_list, path_Xrange_list

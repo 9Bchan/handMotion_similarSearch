@@ -11,7 +11,7 @@ import myfunc
 
 
 
-def output_result(list_2d, data_X, data_Y):
+def graphs(list_2d, data_X, data_Y, path_list):
     xlen = len(data_X)
     ylen = len(data_Y)
 
@@ -30,6 +30,11 @@ def output_result(list_2d, data_X, data_Y):
     sns.heatmap(list_2d, square=False, cmap="Oranges", xticklabels=50, yticklabels=50, cbar=False, ax=ax2)
     ax2.invert_yaxis()  # 上下反転
 
+    # ヒートマップにパスを描画
+    for path in path_list:
+        path_np = np.array(path)
+        ax2.plot(path_np[:,0], path_np[:,1], c="C3")
+
     ax4.plot(range(xlen), data_X)
     ax4.set_xlabel("$X$")
 
@@ -40,10 +45,10 @@ def output_result(list_2d, data_X, data_Y):
 
 
 def handElement_calc():
-    isManual = True # コンソールからの入力及びループ実行の有効可
+    isManual = False # コンソールからの入力及びループ実行の有効可
     keyDataNum = 0
     tgtDataNum = 0
-    indexLabel = '0x_L'
+    indexLabel = '0y_R'
     pathThreshold = 5000
     frameThreshold = 10
 
@@ -71,8 +76,15 @@ def handElement_calc():
         
         calc_partialDtw.spring()
 
-        #myfunc.printline(calc_partialDtw.costMatrix)
-        output_result(calc_partialDtw.costMatrix, X, Y)
+        path_list, path_Xrange_list = calc_partialDtw.path_select()
+
+
+        for path_Xrange in path_Xrange_list:
+            print("{} ~ {}".format(path_Xrange[0], path_Xrange[1]))
+            pass
+
+        graphs(calc_partialDtw.costMatrix, X, Y, path_list)
+
 
         if isManual == True and input('Press <f> to continue : ') == 'f' :
             continue
@@ -81,8 +93,8 @@ def handElement_calc():
     #partial_DTW.plot_path()
 
 if __name__ == '__main__':
-    userDir = "C:/Users/hisa/Desktop/research/"
-    #userDir = "C:/Users/root/Desktop/hisa_reserch/"
+    #userDir = "C:/Users/hisa/Desktop/research/"
+    userDir = "C:/Users/root/Desktop/hisa_reserch/"
     keyData_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/tango/"
     tgtData_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/bunsyo/"
 
@@ -94,7 +106,7 @@ if __name__ == '__main__':
     #load_handData.loadToDataBase(tgtData_dirPath, tgtDataBase, 'target')
 
     # 指定ファイルのみ読み込み
-    keyData_filePath = keyData_dirPath + '0.csv'
+    keyData_filePath = keyData_dirPath + '154_part33.csv'
     tgtData_filePath = tgtData_dirPath + '4.csv'
     load_handData.loadToDataBase_one(keyData_dirPath, keyDataBase, 'key', keyData_filePath)
     load_handData.loadToDataBase_one(tgtData_dirPath, tgtDataBase, 'target', tgtData_filePath)
