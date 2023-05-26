@@ -168,7 +168,7 @@ class Calc_PartialDtw():
         pathM = self.pathMatrix
         headM = self.headMatrix
 
-        below_pathTH_i = np.where((costM[:, -1] < 0.4)) # return (list, type)　しきい値以下のコストを持つパスを取得
+        below_pathTH_i = np.where((costM[:, -1] < self.PATH_TH)) # return (list, type)　しきい値以下のコストを持つパスを取得
         #print(pathM[0, -1])
         #print(below_pathTH_i[0])
         path_list = []

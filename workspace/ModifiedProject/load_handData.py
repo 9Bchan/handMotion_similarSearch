@@ -55,17 +55,17 @@ def load_HandData(path):
         posInImg_excNone_x_L_df = posInImg_excNone_df.loc[1:posInImg_excNone_df_colSize, joint_x_L_list].astype(float) # （手首速度行列とサイズを合わせるため0フレーム目はカット）
         posFrmWrist_excNone_x_L_df = posInImg_excNone_x_L_df.copy()
         for jointLabel in joint_x_L_list:
-            posFrmWrist_excNone_x_L_df[jointLabel] = (posInImg_excNone_x_L_df[jointLabel] - posInImg_excNone_wrist_df['0x_L'])*FRAME_WIDTH
+            posFrmWrist_excNone_x_L_df[jointLabel] = (posInImg_excNone_x_L_df[jointLabel] - posInImg_excNone_wrist_df['0x_L'])
         joint_y_L_list = ['1y_L', '2y_L', '3y_L', '4y_L', '5y_L', '6y_L', '7y_L', '8y_L', '9y_L', '10y_L', '11y_L', '12y_L', '13y_L', '14y_L', '15y_L', '16y_L', '17y_L', '18y_L', '19y_L', '20y_L'] # 手首を除いた手指関節ラベル
         posInImg_excNone_y_L_df = posInImg_excNone_df.loc[1:posInImg_excNone_df_colSize, joint_y_L_list].astype(float) # （手首速度行列とサイズを合わせるため0フレーム目はカット）
         posFrmWrist_excNone_y_L_df = posInImg_excNone_y_L_df.copy()
         for jointLabel in joint_y_L_list:
-            posFrmWrist_excNone_y_L_df[jointLabel] = (posInImg_excNone_y_L_df[jointLabel] - posInImg_excNone_wrist_df['0y_L'])*FRAME_HEIGHT
+            posFrmWrist_excNone_y_L_df[jointLabel] = (posInImg_excNone_y_L_df[jointLabel] - posInImg_excNone_wrist_df['0y_L'])
         joint_x_R_list = ['1x_R', '2x_R', '3x_R', '4x_R', '5x_R', '6x_R', '7x_R', '8x_R', '9x_R', '10x_R', '11x_R', '12x_R', '13x_R', '14x_R', '15x_R', '16x_R', '17x_R', '18x_R', '19x_R', '20x_R'] # 手首を除いた手指関節ラベル
         posInImg_excNone_x_R_df = posInImg_excNone_df.loc[1:posInImg_excNone_df_colSize, joint_x_R_list].astype(float) # （手首速度行列とサイズを合わせるため0フレーム目はカット）
         posFrmWrist_excNone_x_R_df = posInImg_excNone_x_R_df.copy()
         for jointLabel in joint_x_R_list:
-            posFrmWrist_excNone_x_R_df[jointLabel] = (posInImg_excNone_x_R_df[jointLabel] - posInImg_excNone_wrist_df['0x_R'])*FRAME_WIDTH
+            posFrmWrist_excNone_x_R_df[jointLabel] = (posInImg_excNone_x_R_df[jointLabel] - posInImg_excNone_wrist_df['0x_R'])
         joint_y_R_list = ['1y_R', '2y_R', '3y_R', '4y_R', '5y_R', '6y_R', '7y_R', '8y_R', '9y_R', '10y_R', '11y_R', '12y_R', '13y_R', '14y_R', '15y_R', '16y_R', '17y_R', '18y_R', '19y_R', '20y_R'] # 手首を除いた手指関節ラベル
         posInImg_excNone_y_R_df = posInImg_excNone_df.loc[1:posInImg_excNone_df_colSize, joint_y_R_list].astype(float) # （手首速度行列とサイズを合わせるため0フレーム目はカット）
         posFrmWrist_excNone_y_R_df = posInImg_excNone_y_R_df.copy()
@@ -128,8 +128,8 @@ def natural_keys(text):
 
 # テスト用
 if __name__ == '__main__':
-    #userDir = "C:/Users/hisa/Desktop/research/"
-    userDir = "C:/Users/root/Desktop/hisa_reserch/"
+    userDir = "C:/Users/hisa/Desktop/research/"
+    #userDir = "C:/Users/root/Desktop/hisa_reserch/"
     keyData_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/"
     tgtData_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/"
     keyData_Path = keyData_dirPath + "test.csv"
