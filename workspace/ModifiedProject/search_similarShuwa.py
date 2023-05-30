@@ -45,10 +45,10 @@ def path_graphs(list_2d, data_X, data_Y, path_list):
 
 
 def handElement_calc():
-    isManual = True # コンソールからの入力及びループ実行の有効可
+    isManual = False # コンソールからの入力及びループ実行の有効可
     keyDataNum = 0
     tgtDataNum = 0
-    indexLabel = '0y_R'
+    indexLabel = '1y_L'
     pathThreshold = 5000
     frameThreshold = 10
 
@@ -78,7 +78,15 @@ def handElement_calc():
 
         path_list, path_Xrange_list = calc_partialDtw.path_select()
 
+        '''
+        for num, path in enumerate(path_list):
+            print("[{}, {}]".format(path[-1][0], path[0][0]))
+            print(path_Xrange_list[num])
+            print("#########")
+        '''
 
+
+        
         if path_Xrange_list == []:
             myfunc.printline("path is not founded")
         
@@ -94,6 +102,7 @@ def handElement_calc():
                 myfunc.printline("range -> {} ~ {} | cost -> {} ".format(path_Xrange[0], path_Xrange[1], path_cost))      
             
             path_graphs(calc_partialDtw.costMatrix, X, Y, path_list)
+        
 
 
         if isManual == True and input('Press <f> to continue : ') == 'f' :
@@ -122,6 +131,7 @@ def handAllElement_calc():
             except:
                 input("something is wrong")
                 continue
+        
         for indexLabel in load_handData.frameNumAndjointLabel[1:]:
             calc_partialDtw = partial_DTW.Calc_PartialDtw()
             Y = keyDataBase.AllHandData_df[keyDataNum][indexLabel].tolist()
@@ -136,13 +146,10 @@ def handAllElement_calc():
             path_list, path_Xrange_list = calc_partialDtw.path_select()
 
 
-            for path_Xrange in path_Xrange_list:
-                myfunc.printline("range -> {} ~ {} | cost -> {} ".format(path_Xrange[0], path_Xrange[1], path_Xrange[2]))
+                
 
-            for path_Xrange in path_Xrange_list:
-                myfunc.printline("range -> {} ~ {} | cost -> {} ".format(tgtDataBase.AllHandData_df[keyDataNum]['frame'][path_Xrange[0]], tgtDataBase.AllHandData_df[keyDataNum]['frame'][path_Xrange[1]], path_Xrange[2]))        
-            
-            path_graphs(calc_partialDtw.costMatrix, X, Y, path_list)
+
+
 
 
         if isManual == True and input('Press <f> to continue : ') == 'f' :
@@ -174,7 +181,7 @@ if __name__ == '__main__':
     #myfunc.printlines(tgtDataBase.AllFileNames)
 
     #myfunc.printline(keyDataBase.AllwristVelAndJointPos_L)
-    handElement_calc()
+    handAllElement_calc()
 
     
 

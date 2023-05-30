@@ -70,7 +70,7 @@ def load_HandData(path):
         posInImg_excNone_y_R_df = posInImg_excNone_df.loc[1:posInImg_excNone_df_colSize, joint_y_R_list].astype(float) # （手首速度行列とサイズを合わせるため0フレーム目はカット）
         posFrmWrist_excNone_y_R_df = posInImg_excNone_y_R_df.copy()
         for jointLabel in joint_y_R_list:
-            posFrmWrist_excNone_y_R_df[jointLabel] = (posInImg_excNone_y_R_df[jointLabel] - posInImg_excNone_wrist_df['0y_R'])*FRAME_HEIGHT
+            posFrmWrist_excNone_y_R_df[jointLabel] = (posInImg_excNone_y_R_df[jointLabel] - posInImg_excNone_wrist_df['0y_R'])
         #myfunc.printlines(posFrmWrist_excNone_x_L_df)
         #myfunc.printlines(posFrmWrist_excNone_y_L_df)
         #myfunc.printlines(posFrmWrist_excNone_x_R_df)
