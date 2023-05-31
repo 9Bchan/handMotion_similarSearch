@@ -33,10 +33,12 @@ class HandDataBase():
         self.AllHandData_df = []
         self.AllFileNames = []
         self.labels = None
+        self.originallyTotalFrame_list = []
 
 def load_HandData(path):
         posInImg_df = pd.read_csv(path, dtype=str) # 画像中の手の関節位置データ取得
         posInImg_df.columns = frameNumAndjointLabel
+        origioriginallyTotalFrame = posInImg_df.shape[0]
         posInImg_excNone_df = posInImg_df[(~posInImg_df['0x_L'].str.contains('None')) & (~posInImg_df['0x_R'].str.contains('None'))] # Noneを含む行を排除
         posInImg_excNone_df = posInImg_excNone_df.reset_index(drop=True) # index番号降り直し
         posInImg_excNone_df_colSize = posInImg_excNone_df.shape[0] - 1 # 0からカウントした列サイズ
@@ -84,7 +86,7 @@ def load_HandData(path):
         handData_df[joint_x_R_list] = posFrmWrist_excNone_x_R_df[joint_x_R_list]
         handData_df[joint_y_R_list] = posFrmWrist_excNone_y_R_df[joint_y_R_list]
 
-        return handData_df
+        return handData_df, origioriginallyTotalFrame
 
 def loadToDataBase(dirPath, handDataBase, label):
     myfunc.printline("Start loading " + label + " data...")
@@ -95,13 +97,14 @@ def loadToDataBase(dirPath, handDataBase, label):
         os.sys.exit()
 
     if handData_filePath_list is not None:
-        for filePath in tqdm(sorted(handData_filePath_list, key=natural_keys), bar_format="{l_bar}{bar:10}{r_bar}{bar:-10b}"): # ファイルを番号順に読み込むためにnaortedを使用，進捗の表示にtqdmを使用
-            handData_df = load_HandData(filePath)
+        for filePath in tqdm(sorted(handData_filePath_list, key=natural_keys), bar_format="{l_bar}{bar:10}{r_bar}{bar:-10b}", colour='green'): # ファイルを番号順に読み込むためにnaortedを使用，進捗の表示にtqdmを使用
+            handData_df, origioriginallyTotalFrame = load_HandData(filePath)
             fileName = os.path.splitext(os.path.basename(filePath))[0]
             
             # データベース登録
             handDataBase.AllHandData_df.append(handData_df)
             handDataBase.AllFileNames.append(fileName)
+            handDataBase.originallyTotalFrame_list.append(origioriginallyTotalFrame)
 
             #print(filePath)
             #print(handData_df)
@@ -111,12 +114,13 @@ def loadToDataBase(dirPath, handDataBase, label):
 def loadToDataBase_one(dirPath, handDataBase, label, data_filePath):
     myfunc.printline("Start loading " + label + " data...")
 
-    handData_df = load_HandData(data_filePath)
+    handData_df, origioriginallyTotalFrame = load_HandData(data_filePath)
     fileName = os.path.splitext(os.path.basename(data_filePath))[0]
     
     # データベース登録
     handDataBase.AllHandData_df.append(handData_df)
     handDataBase.AllFileNames.append(fileName)
+    handDataBase.originallyTotalFrame_list.append(origioriginallyTotalFrame)
 
     myfunc.printline("Completed")
 

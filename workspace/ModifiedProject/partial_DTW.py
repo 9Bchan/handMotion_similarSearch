@@ -63,8 +63,7 @@ class Calc_PartialDtw():
             else:
                 return i - 1, j - 1, m2
 
-    def spring(self):
-        myfunc.printline("Start calculation by spring...")
+    def create_matrix(self):
         x = self.tgt_data # 検索される対象(ターゲット)
         y = self.key_data # 検索キー
         #dataDist = np.array(x).reshape(1, -1)**2 + np.array(y).reshape(-1, 1)**2
@@ -160,11 +159,10 @@ class Calc_PartialDtw():
         self.headMatrix = headM
         self.len_x = len_x
         self.len_y = len_y
-        myfunc.printline("Completed")
     
 
     # プログラム見直しで高速化可能と思う
-    def path_select(self):
+    def select_path(self):
         costM = self.costMatrix
         pathM = self.pathMatrix
         headM = self.headMatrix
