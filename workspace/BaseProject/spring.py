@@ -615,6 +615,7 @@ def load_targetData(targetData_dirPath):
             target_DataBase.AllDataNum.append(fileName)
             target_DataBase.labels = treat_TShandData.labels
     
+    print(target_DataBase.AllDataNum)
     print("Completed loading target data")
 
 # 検索データの読み込み
@@ -915,8 +916,8 @@ if __name__ == "__main__":
 
     #outputVest()
     #all_calc()
-    #calc_tangoCost(targetNum)
-    execute()
+    calc_tangoCost(targetNum)
+    #execute()
 
     #plt_originalData()
 

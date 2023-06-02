@@ -78,6 +78,8 @@ class Calc_PartialDtw():
         pathM = np.zeros((len_x, len_y, 2), int)    # パス連結行列 各点において，その点を通るパスのひとつ前の点(連結関係)を保存
         headM = np.zeros((len_x, len_y), int)       # パス開始点行列 各点において，その点を通るパスの開始点を保存
 
+
+
         # 0列目
         costM[0, 0] = self.get_dist(x[0], y[0])
         for j in range(1, len_y):
@@ -182,39 +184,41 @@ class Calc_PartialDtw():
         path_list = []
         path_Xrange_list = []
 
-        # パス絞り込み処理初期設定
-        reservation_i = pathEnd_SelByTH_list[0]
-        reservation_head = headM[reservation_i, -1]
-        reservation_cost = costM[reservation_i, -1]
-        for i in pathEnd_SelByTH_list[1:]: 
-            #path_Xrange_list.append([headM[i, -1], i, costM[i, -1]]) # 閾値以下のパス全部ver
-        
+        if not pathEnd_SelByTH_list == []:
 
-
-            # パスの開始地点が同じものが複数ある場合，最小コストのパスを選択
-            if headM[i, -1] == reservation_head: # 一つ前に参照したパスと開始地点が同じかどうか
-                if costM[i, -1] <= reservation_cost: # 一つ前に参照したパスのコストとの比較
-                    reservation_i = i
-                    reservation_head = headM[reservation_i, -1]
-                    reservation_cost = costM[reservation_i, -1]
-                if i != pathEnd_SelByTH_list[-1]: # pathEnd_SelByTH_listリストの最後の要素を参照したかどうか
-                    continue # for内の以降の処理をスキップ
-
-            # 条件を満たすパスを出力用リストに追加
-            path_Xrange_list.append([headM[reservation_i, -1], reservation_i, costM[reservation_i, -1]]) # [開始フレーム, 終了フレーム]
-            reservation_j = self.len_y - 1
-            path_conn = [[reservation_i, reservation_j]]
-            while pathM[reservation_i, reservation_j][1] != 0: # パスの終了地点から開始点までたどる
-                ref_i = reservation_i # 参照用変数として使用（値更新処理の順番による誤動作防止）
-                ref_j = reservation_j
-                reservation_i = pathM[ref_i, ref_j][0]
-                reservation_j = pathM[ref_i, ref_j][1]
-                path_conn.append([reservation_i, reservation_j]) # 通過したマスとコストを保存
-            path_list.append(path_conn)
-
-            reservation_i = i
+            # パス絞り込み処理初期設定
+            reservation_i = pathEnd_SelByTH_list[0]
             reservation_head = headM[reservation_i, -1]
             reservation_cost = costM[reservation_i, -1]
+            for i in pathEnd_SelByTH_list[1:]: 
+                #path_Xrange_list.append([headM[i, -1], i, costM[i, -1]]) # 閾値以下のパス全部ver
             
+
+
+                # パスの開始地点が同じものが複数ある場合，最小コストのパスを選択
+                if headM[i, -1] == reservation_head: # 一つ前に参照したパスと開始地点が同じかどうか
+                    if costM[i, -1] <= reservation_cost: # 一つ前に参照したパスのコストとの比較
+                        reservation_i = i
+                        reservation_head = headM[reservation_i, -1]
+                        reservation_cost = costM[reservation_i, -1]
+                    if i != pathEnd_SelByTH_list[-1]: # pathEnd_SelByTH_listリストの最後の要素を参照したかどうか
+                        continue # for内の以降の処理をスキップ
+
+                # 条件を満たすパスを出力用リストに追加
+                path_Xrange_list.append([headM[reservation_i, -1], reservation_i, costM[reservation_i, -1]]) # [開始フレーム, 終了フレーム]
+                reservation_j = self.len_y - 1
+                path_conn = [[reservation_i, reservation_j]]
+                while pathM[reservation_i, reservation_j][1] != 0: # パスの終了地点から開始点までたどる
+                    ref_i = reservation_i # 参照用変数として使用（値更新処理の順番による誤動作防止）
+                    ref_j = reservation_j
+                    reservation_i = pathM[ref_i, ref_j][0]
+                    reservation_j = pathM[ref_i, ref_j][1]
+                    path_conn.append([reservation_i, reservation_j]) # 通過したマスとコストを保存
+                path_list.append(path_conn)
+
+                reservation_i = i
+                reservation_head = headM[reservation_i, -1]
+                reservation_cost = costM[reservation_i, -1]
+                
 
         return path_list, path_Xrange_list

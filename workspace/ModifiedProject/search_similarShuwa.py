@@ -10,14 +10,20 @@ import partial_DTW
 import load_handData
 import myfunc
 
+MAX_DIST = 2
+
+
 
 class Similarity_search():
     def __init__(self):
         self.keyDataNum = 0
         self.tgtDataNum = 0
-        self.indexLabel = '1y_L'
-        self.pathThreshold = 5000
+        self.data_X = None
+        self.data_Y = None
+        self.indexLabel = '0y_L'
+        self.pathThreshold = 0.1
         self.frameThreshold = 10
+        self.maxPathCost_tentative = 0
         self.all_path_Xrange_list = []
 
     def set_values(self):
@@ -36,10 +42,10 @@ class Similarity_search():
     #　全ての手の情報要素についてパスを計算，結果を表示
     def calc_handElementPath(self):
         calc_partialDtw = partial_DTW.Calc_PartialDtw()
-        Y = keyDataBase.AllHandData_df[self.keyDataNum][self.indexLabel].tolist()
-        X = tgtDataBase.AllHandData_df[self.tgtDataNum][self.indexLabel].tolist()
-        calc_partialDtw.key_data = Y
-        calc_partialDtw.tgt_data = X
+        self.data_Y = keyDataBase.AllHandData_df[self.keyDataNum][self.indexLabel].tolist()
+        self.data_X = tgtDataBase.AllHandData_df[self.tgtDataNum][self.indexLabel].tolist()
+        calc_partialDtw.key_data = self.data_Y
+        calc_partialDtw.tgt_data = self.data_X
         calc_partialDtw.PATH_TH = self.pathThreshold # 出力パスの最大合計スコア
         calc_partialDtw.FRAME_TH = self.frameThreshold # 出力パスの最低経由フレーム数
         
@@ -51,7 +57,7 @@ class Similarity_search():
             myfunc.printline("path is not founded")
         else:
             self.print_path(path_Xrange_list)
-            self.show_path(calc_partialDtw.costMatrix, X, Y, path_list)
+            self.show_path(calc_partialDtw.costMatrix, self.data_X, self.data_Y, path_list)
 
     
     
@@ -61,10 +67,10 @@ class Similarity_search():
         all_path_Xrange_list = []
         for indexLabel in tqdm(load_handData.frameNumAndjointLabel[1:], bar_format="{l_bar}{bar:10}{r_bar}{bar:-10b}", colour='green'):
             calc_partialDtw = partial_DTW.Calc_PartialDtw()
-            Y = keyDataBase.AllHandData_df[self.keyDataNum][indexLabel].tolist()
-            X = tgtDataBase.AllHandData_df[self.tgtDataNum][indexLabel].tolist()
-            calc_partialDtw.key_data = Y
-            calc_partialDtw.tgt_data = X
+            self.data_Y = keyDataBase.AllHandData_df[self.keyDataNum][indexLabel].tolist()
+            self.data_X = tgtDataBase.AllHandData_df[self.tgtDataNum][indexLabel].tolist()
+            calc_partialDtw.key_data = self.data_Y
+            calc_partialDtw.tgt_data = self.data_X
             calc_partialDtw.PATH_TH = self.pathThreshold # 出力パスの最大合計スコア
             calc_partialDtw.FRAME_TH = self.frameThreshold # 出力パスの最低経由フレーム数
         
@@ -78,37 +84,42 @@ class Similarity_search():
         
     
     def calc_scoreData(self, all_path_Xrange_list):
-        totalFrame = tgtDataBase.originallyTotalFrame_list[self.tgtDataNum]
-        len_all_path_Xrange_list = len(all_path_Xrange_list)
-        myfunc.printline(totalFrame)
-        myfunc.printline(len_all_path_Xrange_list)
-        scoreM = np.zeros((totalFrame, len_all_path_Xrange_list), float)
-        for indexNum in range(len_all_path_Xrange_list):
-            path_Xrange_list = all_path_Xrange_list[indexNum]
+        #len_Y = keyDataBase.AllHandData_df[self.keyDataNum].shape[0]
+        totalNum_frame_tgt = tgtDataBase.originallyTotalFrame_list[self.tgtDataNum]
+
+        scoreM = np.zeros((totalNum_frame_tgt, len(all_path_Xrange_list)), float)
+        for j, path_Xrange_list in enumerate(all_path_Xrange_list):
 
             for path_Xrange in path_Xrange_list:
-
                 path_head = (tgtDataBase.AllHandData_df[self.tgtDataNum]['frame'][path_Xrange[0] + 1])
                 path_end = (tgtDataBase.AllHandData_df[self.tgtDataNum]['frame'][path_Xrange[1] + 1])
                 path_cost = path_Xrange[2]
 
-                for i in range(path_head, (path_end + 1)): # path_head ~ path_end の値をiに代入
-                    if scoreM[i][indexNum] == 0:
-                        scoreM[i][indexNum] = path_cost
-                    elif scoreM[i][indexNum] > path_cost:
-                            scoreM[i][indexNum] = path_cost
+                #maxPathScore = (len_Y + ((path_end - path_head))) * MAX_DIST
+                #maxPathScore =  (len_Y + (len_Y * 1.5)) * MAX_DIST
 
-        print(scoreM)
+                path_score = self.pathThreshold - path_cost # スコアに変換（スコア : 値が大きいほど類似度高い）
+                for i in range(path_head, (path_end + 1)): # path_head ~ path_end の値をiに代入
+                    if scoreM[i][j] == 0: # スコアが入ってなければスコアを代入
+                        scoreM[i][j] = path_score
+                    elif scoreM[i][j] < path_score: # すでにスコアが入っているなら比較して代入
+                        scoreM[i][j] = path_score
+            
+            
+
+        frame_nums = list(range(0, totalNum_frame_tgt))
+        frame_score = np.sum(scoreM, axis=1)
+        plt.plot(frame_nums, frame_score, color="k") # 点列(x,y)を黒線で繋いだプロット
+        plt.show() # プロットを表示
+        #print(np.sum(scoreM, axis=1))
 
 
 
     
     # パスをグラフに描画して表示
     def show_path(self, list_2d, data_X, data_Y, path_list):
-        xlen = len(data_X)
-        ylen = len(data_Y)
 
-        aspectRatio = xlen/ylen # 縦横比
+        aspectRatio = len(self.data_X)/len(self.data_Y) # 縦横比
 
         graphWindowSizeBase = 5
         plt.figure(figsize=(graphWindowSizeBase*aspectRatio, graphWindowSizeBase)) # ウィンドウサイズ
@@ -128,10 +139,10 @@ class Similarity_search():
             path_np = np.array(path)
             ax2.plot(path_np[:,0], path_np[:,1], c="C3")
 
-        ax4.plot(range(xlen), data_X)
+        ax4.plot(range(self.data_X), self.data_X)
         ax4.set_xlabel("$X$")
 
-        ax1.plot(data_Y, range(ylen), c="C1")
+        ax1.plot(self.data_Y, range(self.data_Y), c="C1")
         ax1.set_ylabel("$Y$")
 
         plt.show()
@@ -164,14 +175,11 @@ if __name__ == '__main__':
     #load_handData.loadToDataBase(tgtData_dirPath, tgtDataBase, 'target')
 
     # 指定ファイルのみ読み込み
-    keyData_filePath = keyData_dirPath + '154_part33.csv'
+    keyData_filePath = keyData_dirPath + '156_taiki.csv'
+    #keyData_filePath = keyData_dirPath + '154_part33.csv'
     tgtData_filePath = tgtData_dirPath + '4.csv'
     load_handData.loadToDataBase_one(keyData_dirPath, keyDataBase, 'key', keyData_filePath)
     load_handData.loadToDataBase_one(tgtData_dirPath, tgtDataBase, 'target', tgtData_filePath)
-
-    print(load_handData.frameNumAndjointLabel)
-
-    print(keyDataBase.labels)
 
     #myfunc.printlist(tgtDataBase.AllHandData_df)
     #myfunc.printlines(tgtDataBase.AllFileNames)
@@ -182,5 +190,5 @@ if __name__ == '__main__':
 
     #similarity_search.calc_handElementPath()
     similarity_search.calc_handAllElementPath()
-    
+     
 
