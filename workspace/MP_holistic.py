@@ -31,9 +31,18 @@ def cam_MP():
                 frame, holistic_results.face_landmarks, mp_holistic.FACE_CONNECTIONS)'''
             
             mp_drawing.draw_landmarks(
-                frame, holistic_results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
+                image=frame, 
+                landmark_list=holistic_results.left_hand_landmarks, 
+                connections=mp_holistic.HAND_CONNECTIONS,
+                landmark_drawing_spec=mp_drawing.DrawingSpec(color=[0, 180, 0], thickness=2, circle_radius=4),
+                connection_drawing_spec=mp_drawing.DrawingSpec(color=[0, 180, 0], thickness=2, circle_radius=4))
+            
             mp_drawing.draw_landmarks(
-                frame, holistic_results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
+                image=frame,
+                landmark_list=holistic_results.right_hand_landmarks,
+                connections=mp_holistic.HAND_CONNECTIONS,
+                landmark_drawing_spec=mp_drawing.DrawingSpec(color=[0, 0, 180], thickness=2, circle_radius=4),
+                connection_drawing_spec=mp_drawing.DrawingSpec(color=[0, 0, 180], thickness=2, circle_radius=4))
             
             '''
             mp_drawing.draw_landmarks(
