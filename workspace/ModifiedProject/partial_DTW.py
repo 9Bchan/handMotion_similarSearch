@@ -209,7 +209,7 @@ class Calc_PartialDtw():
                 reservation_j = self.len_y - 1
                 path_conn = [[reservation_i, reservation_j]]
                 while pathM[reservation_i, reservation_j][1] != 0: # パスの終了地点から開始点までたどる
-                    ref_i = reservation_i # 参照用変数として使用（値更新処理の順番による誤動作防止）
+                    ref_i = reservation_i # 参照用変数として使用（値更新処理の順番によるミス防止）
                     ref_j = reservation_j
                     reservation_i = pathM[ref_i, ref_j][0]
                     reservation_j = pathM[ref_i, ref_j][1]

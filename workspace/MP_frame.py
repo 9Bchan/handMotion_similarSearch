@@ -133,8 +133,8 @@ class PltCtrl():
 
 
 def cam_MP():
-    #cap = cv2.VideoCapture(0)
-    cap = cv2.VideoCapture("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/shuwa_video/5kyu/mp4/VTS_06_1.mp4")
+    cap = cv2.VideoCapture(0)
+    #cap = cv2.VideoCapture("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/shuwa_video/5kyu/mp4/VTS_06_1.mp4")
     frame_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     frame_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
     if isVecsum:

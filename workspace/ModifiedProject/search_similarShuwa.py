@@ -21,9 +21,14 @@ class Similarity_search():
         self.data_X = None
         self.data_Y = None
         self.indexLabel = '0y_L'
+        # 中身忘れそうだから辞書型で書いてる
+        self.weights_dict = {'0x_L':1, '0y_L':3, '1x_L':1, '1y_L':1, '2x_L':1, '2y_L':1, '3x_L':1, '3y_L':1, '4x_L':1, '4y_L':1, '5x_L':1, '5y_L':1, '6x_L':1, '6y_L':1, '7x_L':1, '7y_L':1, '8x_L':1, '8y_L':1, '9x_L':1, '9y_L':1,
+            '10x_L':1, '10y_L':1, '11x_L':1, '11y_L':1, '12x_L':1, '12y_L':1, '13x_L':1, '13y_L':1, '14x_L':1, '14y_L':1, '15x_L':1, '15y_L':1, '16x_L':1, '16y_L':1, '17x_L':1, '17y_L':1, '18x_L':1, '18y_L':1, '19x_L':1, '19y_L':1, '20x_L':1, '20y_L':1,
+            '0x_R':1, '0y_R':3, '1x_R':1, '1y_R':1, '2x_R':1, '2y_R':1, '3x_R':1, '3y_R':1, '4x_R':1, '4y_R':1, '5x_R':1, '5y_R':1, '6x_R':1, '6y_R':1, '7x_R':1, '7y_R':1, '8x_R':1, '8y_R':1, '9x_R':1, '9y_R':1,
+            '10x_R':1, '10y_R':1, '11x_R':1, '11y_R':1, '12x_R':1, '12y_R':1, '13x_R':1, '13y_R':1, '14x_R':1, '14y_R':1, '15x_R':1, '15y_R':1, '16x_R':1, '16y_R':1, '17x_R':1, '17y_R':1, '18x_R':1, '18y_R':1, '19x_R':1, '19y_R':1, '20x_R':1, '20y_R':1}
         self.pathThreshold = 0.1
-        self.frameThreshold = 10
-        self.maxPathCost_tentative = 0
+        self.frameThreshold = 20
+        self.maxPathCost_tentative = 20
         self.all_path_Xrange_list = []
 
     def set_values(self):
@@ -80,6 +85,14 @@ class Similarity_search():
 
             all_path_Xrange_list.append(path_Xrange_list)
 
+            """
+            if path_Xrange_list == []:
+                myfunc.printline("path is not founded")
+            else:
+                self.print_path(path_Xrange_list)
+                self.show_path(calc_partialDtw.costMatrix, self.data_X, self.data_Y, path_list)
+            """
+
         self.calc_scoreData(all_path_Xrange_list)
         
     
@@ -89,8 +102,10 @@ class Similarity_search():
 
         scoreM = np.zeros((totalNum_frame_tgt, len(all_path_Xrange_list)), float)
         for j, path_Xrange_list in enumerate(all_path_Xrange_list):
-
+            label = load_handData.frameNumAndjointLabel[1+j]
+            weight = self.weights_dict[label]
             for path_Xrange in path_Xrange_list:
+                
                 path_head = (tgtDataBase.AllHandData_df[self.tgtDataNum]['frame'][path_Xrange[0] + 1])
                 path_end = (tgtDataBase.AllHandData_df[self.tgtDataNum]['frame'][path_Xrange[1] + 1])
                 path_cost = path_Xrange[2]
@@ -98,13 +113,12 @@ class Similarity_search():
                 #maxPathScore = (len_Y + ((path_end - path_head))) * MAX_DIST
                 #maxPathScore =  (len_Y + (len_Y * 1.5)) * MAX_DIST
 
-                path_score = self.pathThreshold - path_cost # スコアに変換（スコア : 値が大きいほど類似度高い）
-                for i in range(path_head, (path_end + 1)): # path_head ~ path_end の値をiに代入
+                path_score = (self.pathThreshold - path_cost)*weight # スコアに変換（スコア : 値が大きいほど類似度高い）
+                for i in range(path_head, (path_end)): # path_head ~ path_end の値をiに代入
                     if scoreM[i][j] == 0: # スコアが入ってなければスコアを代入
                         scoreM[i][j] = path_score
                     elif scoreM[i][j] < path_score: # すでにスコアが入っているなら比較して代入
                         scoreM[i][j] = path_score
-            
             
 
         frame_nums = list(range(0, totalNum_frame_tgt))
@@ -175,8 +189,8 @@ if __name__ == '__main__':
     #load_handData.loadToDataBase(tgtData_dirPath, tgtDataBase, 'target')
 
     # 指定ファイルのみ読み込み
-    keyData_filePath = keyData_dirPath + '156_taiki.csv'
-    #keyData_filePath = keyData_dirPath + '154_part33.csv'
+    #keyData_filePath = keyData_dirPath + '156_taiki.csv'
+    keyData_filePath = keyData_dirPath + '154_part33.csv'
     tgtData_filePath = tgtData_dirPath + '4.csv'
     load_handData.loadToDataBase_one(keyData_dirPath, keyDataBase, 'key', keyData_filePath)
     load_handData.loadToDataBase_one(tgtData_dirPath, tgtDataBase, 'target', tgtData_filePath)
@@ -190,5 +204,4 @@ if __name__ == '__main__':
 
     #similarity_search.calc_handElementPath()
     similarity_search.calc_handAllElementPath()
-     
 
