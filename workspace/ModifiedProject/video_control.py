@@ -286,6 +286,9 @@ class Main:
                 # frame全体に対する処理をはじめに実施 ##############################
                 reduction_ratio = 1.5
                 self.frame = cv2.resize(self.frame, dsize=(int(self.width/reduction_ratio), int(self.height/reduction_ratio)))
+
+
+                
                 # フレーム数と経過秒数の表示
                 cv2.putText(
                     self.frame, str("frame: {0:.0f}".format(self.frame_count)), (
