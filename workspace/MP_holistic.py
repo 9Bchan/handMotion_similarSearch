@@ -3,7 +3,8 @@ import mediapipe as mp
 
 
 def cam_MP():
-    cap = cv2.VideoCapture("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video_part/bunsyo/4.mp4")
+    #cap = cv2.VideoCapture("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video_part/bunsyo/4.mp4")
+    cap = cv2.VideoCapture(0)
     #cap = cv2.VideoCapture("C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/edited_video_part/tango/33.mp4")
     #C:/Users/hisa/Desktop/research/
     frame_width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
@@ -44,9 +45,11 @@ def cam_MP():
                 landmark_drawing_spec=mp_drawing.DrawingSpec(color=[0, 0, 180], thickness=2, circle_radius=4),
                 connection_drawing_spec=mp_drawing.DrawingSpec(color=[0, 0, 180], thickness=2, circle_radius=4))
             
-            '''
+            
             mp_drawing.draw_landmarks(
-                frame, holistic_results.pose_landmarks, mp_holistic.POSE_CONNECTIONS)'''
+                frame, holistic_results.pose_landmarks, mp_holistic.POSE_CONNECTIONS)
+            if holistic_results.pose_landmarks is not None:
+                print(holistic_results.pose_landmarks.landmark[mp_holistic.PoseLandmark.LEFT_SHOULDER])
             '''
             if holistic_results.right_hand_landmarks is not None:
                 rightHand_randmarks = holistic_results.right_hand_landmarks.landmark
