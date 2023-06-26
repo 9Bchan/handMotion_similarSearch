@@ -181,11 +181,13 @@ def create_handdata_forAllVideos(load_video_dir, output_dir):
         TimeSeries_HandData = Get_hand_joint_data(videoPath)
         outputCsv_TimeSeries_HandData(videoName, output_dir, TimeSeries_HandData)
     
+    '''
     outputFileName = output_dir + "all_data.csv"
     outputFile = open(outputFileName, 'w', newline='')
     writer = csv.writer(outputFile)
     writer.writerows(all_waveform_handdata)
     outputFile.close()
+    '''
     window.close()
 
 def run_gui():
