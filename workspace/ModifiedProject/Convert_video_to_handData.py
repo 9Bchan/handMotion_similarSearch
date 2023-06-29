@@ -32,8 +32,10 @@ def pickPositionsData(hand_L, hand_R, pose):
     if pose is not None: # 一部が映った時点で全体が推測される
         shoulder_L = pose[mp_holistic.PoseLandmark.LEFT_SHOULDER]
         shoulder_R = pose[mp_holistic.PoseLandmark.RIGHT_SHOULDER]
-        bodyPosition_center.append(str(shoulder_L.x - shoulder_R.x))
-        bodyPosition_center.append(str(shoulder_L.y - shoulder_R.y))
+        center_x = (shoulder_L.x + shoulder_R.x) / 2
+        center_y = (shoulder_L.y + shoulder_R.y) / 2
+        bodyPosition_center.append(str(center_x))
+        bodyPosition_center.append(str(center_y))
     else:
         bodyPosition_center.append('None')
         bodyPosition_center.append('None')
@@ -137,11 +139,12 @@ def outputCsv_TimeSeries_HandData(videoName, output_dir, TimeSeries_HandData):
     outputFile_Path = output_dir + videoName + ".csv"
     outputFile = open(outputFile_Path, 'w', newline='')
     outputData = []
+    """
     labels = ['frame', '0x_L', '0y_L', '1x_L', '1y_L', '2x_L', '2y_L', '3x_L', '3y_L', '4x_L', '4y_L', '5x_L', '5y_L', '6x_L', '6y_L', '7x_L', '7y_L', '8x_L', '8y_L', '9x_L', '9y_L',
             '10x_L', '10y_L', '11x_L', '11y_L', '12x_L', '12y_L', '13x_L', '13y_L', '14x_L', '14y_L', '15x_L', '15y_L', '16x_L', '16y_L', '17x_L', '17y_L', '18x_L', '18y_L', '19x_L', '19y_L', '20x_L', '20y_L',
             '0x_R', '0y_R', '1x_R', '1y_R', '2x_R', '2y_R', '3x_R', '3y_R', '4x_R', '4y_R', '5x_R', '5y_R', '6x_R', '6y_R', '7x_R', '7y_R', '8x_R', '8y_R', '9x_R', '9y_R',
             '10x_R', '10y_R', '11x_R', '11y_R', '12x_R', '12y_R', '13x_R', '13y_R', '14x_R', '14y_R', '15x_R', '15y_R', '16x_R', '16y_R', '17x_R', '17y_R', '18x_R', '18y_R', '19x_R', '19y_R', '20x_R', '20y_R',
-            'x_Body', 'y_Body']
+            'x_Body', 'y_Body']"""
     outputData.append(labels)
     outputData.extend(TimeSeries_HandData)
 
@@ -153,6 +156,7 @@ def outputCsv_TimeSeries_HandData(videoName, output_dir, TimeSeries_HandData):
 def create_handdata_forAllVideos(load_video_dir, output_dir):
     videoPath_list = glob.glob(load_video_dir +"*")
     videoName_list = []
+    all_dataName = []
 
     # guiレイアウト
     BAR_MAX = len(videoPath_list)
@@ -177,15 +181,15 @@ def create_handdata_forAllVideos(load_video_dir, output_dir):
         videoName, videoExt = os.path.splitext(videoFile)
         videoName_list.append(videoName)
 
-        all_waveform_handdata.append([videoName]) 
+        all_dataName.append([videoName]) 
         TimeSeries_HandData = Get_hand_joint_data(videoPath)
         outputCsv_TimeSeries_HandData(videoName, output_dir, TimeSeries_HandData)
     
     '''
-    outputFileName = output_dir + "all_data.csv"
+    outputFileName = output_dir + "all_dataName.csv"
     outputFile = open(outputFileName, 'w', newline='')
     writer = csv.writer(outputFile)
-    writer.writerows(all_waveform_handdata)
+    writer.writerows(all_dataName)
     outputFile.close()
     '''
     window.close()
@@ -227,9 +231,7 @@ def run_gui():
                 break
     window.close()
     
-    create_handdata_forAllVideos(load_video_dir, 
-                                output_dir)
-
+    return load_video_dir, output_dir
 
 if __name__ == "__main__":
     
@@ -240,24 +242,6 @@ if __name__ == "__main__":
     mp_drawing = mp.solutions.drawing_utils
     drawing_spec = mp_drawing.DrawingSpec(color=[0, 180, 0], thickness=2, circle_radius=4)
 
-    """
-    mp_hands = mp.solutions.hands
-    hands = mp_hands.Hands(
-        static_image_mode= False, 
-        max_num_hands=2,
-        min_detection_confidence=0.5,
-        min_tracking_confidence=0.5) # 1に近づける程精度向上, 検出時間増加
-    
-    mp_pose = mp.solutions.pose
-    pose = mp_pose.Pose(
-        #upper_body_only=True,
-        model_complexity=1,
-        enable_segmentation=True,
-        min_detection_confidence=0.5)"""
-
-    all_waveform_handdata = []
-
-
     mp_holistic = mp.solutions.holistic
     holistic =  mp_holistic.Holistic(
             static_image_mode=False,        # 静止画:True 動画:False
@@ -267,11 +251,13 @@ if __name__ == "__main__":
             min_tracking_confidence=0.7)
 
     isDraw = True
-    isVecsum = True
-    isCam = False
+    with open("params/labels.txt", "r", encoding="utf-8") as f:
+        labels = f.read().split('\n')
 
-    #createAll_waveform_handdata()
+    load_video_dir, output_dir = run_gui()
 
-    run_gui()
+    create_handdata_forAllVideos(load_video_dir, 
+                                output_dir)
+
 
     myfunc.printline("ended")
