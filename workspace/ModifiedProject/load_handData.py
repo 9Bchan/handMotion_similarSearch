@@ -78,6 +78,11 @@ def load_HandData(path):
             posFrmWrist_excNone_y_R_df[jointLabel] = (posInImg_excNone_y_R_df[jointLabel] - posInImg_excNone_wrist_df['0y_R'])
         
         #!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        joint_x_body = ['x_Body']
+        joint_y_body = ['y_Body']
+
+
         #myfunc.printlines(posFrmWrist_excNone_x_L_df)
         #myfunc.printlines(posFrmWrist_excNone_y_L_df)
         #myfunc.printlines(posFrmWrist_excNone_x_R_df)
