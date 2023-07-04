@@ -30,7 +30,7 @@ class Similarity_search():
             '0x_R':1, '0y_R':3, '1x_R':1, '1y_R':1, '2x_R':1, '2y_R':1, '3x_R':1, '3y_R':1, '4x_R':1, '4y_R':1, '5x_R':1, '5y_R':1, '6x_R':1, '6y_R':1, '7x_R':1, '7y_R':1, '8x_R':1, '8y_R':1, '9x_R':1, '9y_R':1,
             '10x_R':1, '10y_R':1, '11x_R':1, '11y_R':1, '12x_R':1, '12y_R':1, '13x_R':1, '13y_R':1, '14x_R':1, '14y_R':1, '15x_R':1, '15y_R':1, '16x_R':1, '16y_R':1, '17x_R':1, '17y_R':1, '18x_R':1, '18y_R':1, '19x_R':1, '19y_R':1, '20x_R':1, '20y_R':1}
         """
-        self.pathThreshold = 0.1
+        self.pathThreshold = 1
         self.frameThreshold = 20
         self.maxPathCost_tentative = 20
         self.all_path_Xrange_list = []
@@ -59,7 +59,7 @@ class Similarity_search():
         calc_partialDtw.FRAME_TH = self.frameThreshold # 出力パスの最低経由フレーム数
         
         calc_partialDtw.create_matrix()
-
+        
         path_list, path_Xrange_list = calc_partialDtw.select_path()
 
         if path_Xrange_list == []:
@@ -75,6 +75,7 @@ class Similarity_search():
     def calc_handAllElementPath(self):
         all_path_Xrange_list = []
         for indexLabel in tqdm(labels[1:], bar_format="{l_bar}{bar:10}{r_bar}{bar:-10b}", colour='green'):
+        #for indexLabel in labels[1:]:
             calc_partialDtw = partial_DTW.Calc_PartialDtw()
             self.data_Y = keyDataBase.AllHandData_df[self.keyDataNum][indexLabel].tolist()
             self.data_X = tgtDataBase.AllHandData_df[self.tgtDataNum][indexLabel].tolist()
@@ -86,6 +87,7 @@ class Similarity_search():
             calc_partialDtw.create_matrix()
 
             path_list, path_Xrange_list = calc_partialDtw.select_path()
+            #myfunc.printline(path_Xrange_list)
 
             all_path_Xrange_list.append(path_Xrange_list)
 
@@ -204,7 +206,7 @@ def select_file_gui():
             os.sys.exit()
         elif event == 'submit':
             if values['keyData_file'] == "":
-                keyData_filePath = "handData/key/33.csv"
+                keyData_filePath = "handData/key/154_part33.csv"
             else:
                 keyData_filePath = values['keyData_file']
             if values['tgtData_file'] == "":
@@ -227,7 +229,7 @@ if __name__ == '__main__':
     keyDataBase = load_handData.HandDataBase() # データベース空箱
     tgtDataBase = load_handData.HandDataBase()
 
-    with open("params/labels.txt", "r", encoding="utf-8") as f:
+    with open("params/position_labels.txt", "r", encoding="utf-8") as f:
         labels = f.read().split('\n')
 
     # すべてのファイルを読み込み

@@ -251,7 +251,7 @@ if __name__ == "__main__":
             min_tracking_confidence=0.7)
 
     isDraw = True
-    with open("params/labels.txt", "r", encoding="utf-8") as f:
+    with open("params/position_labels.txt", "r", encoding="utf-8") as f:
         labels = f.read().split('\n')
 
     load_video_dir, output_dir = run_gui()
