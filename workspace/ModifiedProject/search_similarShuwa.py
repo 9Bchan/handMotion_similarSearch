@@ -21,7 +21,7 @@ class Similarity_search():
         self.tgtDataNum = 0
         self.data_X = None
         self.data_Y = None
-        self.indexLabel = '0y_L'
+        self.indexLabel = 'posFromWrist_1x_L'
         # 中身忘れそうだから辞書型で書いてる
         self.weights_dict = {}
         """
@@ -229,7 +229,7 @@ if __name__ == '__main__':
     keyDataBase = load_handData.HandDataBase() # データベース空箱
     tgtDataBase = load_handData.HandDataBase()
 
-    with open("params/position_labels.txt", "r", encoding="utf-8") as f:
+    with open("params/feature_labels.txt", "r", encoding="utf-8") as f:
         labels = f.read().split('\n')
 
     # すべてのファイルを読み込み
