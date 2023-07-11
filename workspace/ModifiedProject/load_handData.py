@@ -157,7 +157,7 @@ def loadToDataBase_all(dirPath, handDataBase, label):
             
     myfunc.printline("Completed")
 
-def loadToDataBase_one(dirPath, handDataBase, label, data_filePath):
+def loadToDataBase_one(handDataBase, label, data_filePath):
     myfunc.printline("Start loading " + label + " data...")
 
     handData_df, origioriginallyTotalFrame = calc_handData(data_filePath)
