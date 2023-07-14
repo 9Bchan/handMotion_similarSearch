@@ -184,6 +184,7 @@ class Calc_PartialDtw():
         path_list = []
         path_Xrange_list = []
 
+
         if not pathEnd_SelByTH_list == []:
 
             # パス絞り込み処理初期設定
@@ -202,6 +203,80 @@ class Calc_PartialDtw():
                         reservation_head = headM[reservation_i, -1]
                         reservation_cost = costM[reservation_i, -1]
                     if i != pathEnd_SelByTH_list[-1]: # pathEnd_SelByTH_listリストの最後の要素を参照したかどうか
+                        continue # for内の以降の処理をスキップ
+
+                # 条件を満たすパスを出力用リストに追加
+                path_Xrange_list.append([headM[reservation_i, -1], reservation_i, costM[reservation_i, -1]]) # [開始フレーム, 終了フレーム]
+                reservation_j = self.len_y - 1
+                path_conn = [[reservation_i, reservation_j]]
+                while pathM[reservation_i, reservation_j][1] != 0: # パスの終了地点から開始点までたどる
+                    ref_i = reservation_i # 参照用変数として使用（値更新処理の順番によるミス防止）
+                    ref_j = reservation_j
+                    reservation_i = pathM[ref_i, ref_j][0]
+                    reservation_j = pathM[ref_i, ref_j][1]
+                    path_conn.append([reservation_i, reservation_j]) # 通過したマスとコストを保存
+                path_list.append(path_conn)
+
+                reservation_i = i
+                reservation_head = headM[reservation_i, -1]
+                reservation_cost = costM[reservation_i, -1]
+                
+
+        return path_list, path_Xrange_list
+    
+    # パスのコストが小さい順に三つを取得
+    def select_path_topThree(self):
+        costM = self.costMatrix
+        pathM = self.pathMatrix
+        headM = self.headMatrix
+
+        
+        # しきい値未満のコストをもつパスを選択
+        below_pathTH_i = np.where((costM[:, -1] < self.PATH_TH)) # return (list, type)　しきい値以下のコストを持つパスを取得
+
+        # しきい値以下のフレーム範囲であるパスのコストを例外値で上書き
+        for i, cost in enumerate(costM[:, -1]):
+            path_range = i - headM[i, -1]
+            if not path_range < self.FRAME_TH:
+                costM[i, -1] = 100
+                
+
+        # 値の小さい順から三つのコスト取得
+        pathCost_topThree_np = np.sort(costM[:, -1])[:3]
+
+        # 該当コストのパスの位置取得
+        pathEnd_topThree = []
+        for pathcost in pathCost_topThree_np:
+            path_end = (np.where(costM[:, -1] == pathcost))[0]
+            pathEnd_topThree.append(path_end[0])
+
+        print(pathEnd_topThree)
+        #pathCost_topThree_np = np.array(pathCost_topThree)
+
+        
+        #pathEnd_topThree = [np.where(costM[:, -1] == i) for i in pathCost_topThree_np]
+        #pathEnd_topThree = pathEnd_topThree_np.tolist()
+
+        path_list = []
+        path_Xrange_list = []
+        if not pathEnd_topThree == []:
+
+            # パス絞り込み処理初期設定
+            reservation_i = pathEnd_topThree[0]
+            reservation_head = headM[reservation_i, -1]
+            reservation_cost = costM[reservation_i, -1]
+            for i in pathEnd_topThree[1:]: 
+                #path_Xrange_list.append([headM[i, -1], i, costM[i, -1]]) # 閾値以下のパス全部ver
+            
+
+
+                # パスの開始地点が同じものが複数ある場合，最小コストのパスを選択
+                if headM[i, -1] == reservation_head: # 一つ前に参照したパスと開始地点が同じかどうか
+                    if costM[i, -1] <= reservation_cost: # 一つ前に参照したパスのコストとの比較
+                        reservation_i = i
+                        reservation_head = headM[reservation_i, -1]
+                        reservation_cost = costM[reservation_i, -1]
+                    if i != pathEnd_topThree[-1]: # pathEnd_topThreeリストの最後の要素を参照したかどうか
                         continue # for内の以降の処理をスキップ
 
                 # 条件を満たすパスを出力用リストに追加

@@ -10,6 +10,8 @@ import partial_DTW
 import load_handData
 import myfunc
 import PySimpleGUI as sg
+import shutil
+import time
 
 MAX_DIST = 2
 
@@ -32,7 +34,6 @@ class Similarity_search():
         """
         self.pathThreshold = 1
         self.frameThreshold = 20
-        self.maxPathCost_tentative = 20
         self.all_path_Xrange_list = []
         self.scoreData_plt = None
         self.path_plt_list = []
@@ -93,9 +94,68 @@ class Similarity_search():
 
             self.plt_path(calc_partialDtw.costMatrix, path_list, indexLabel)
 
-
+            # 保存
+            if isSave_path_plt:
+                myfunc.save_2dData_csv(indexLabel, output_dir + 'path/', path_Xrange_list)
 
             self.all_path_Xrange_list.append(path_Xrange_list)
+
+
+    
+    # パスをグラフに描画して表示
+    def plt_path(self, list_2d, path_list, label):
+
+        aspectRatio = len(self.data_X)/len(self.data_Y) # 縦横比
+
+        graphWindowSizeBase = 5
+        plt.figure(figsize=(graphWindowSizeBase*aspectRatio, graphWindowSizeBase)) # ウィンドウサイズ
+
+        gs = gridspec.GridSpec(2, 2, width_ratios=[1, 5*aspectRatio], height_ratios=[5, 1]) # グラフの個数，サイズ定義
+        ax1 = plt.subplot(gs[0])
+        ax2 = plt.subplot(gs[1])
+        ax4 = plt.subplot(gs[3])
+
+        # ヒートマップ作成操作
+        list_2d = np.transpose(list_2d) # 転置
+        sns.heatmap(list_2d, square=False, cmap='Greys', xticklabels=50, yticklabels=50, cbar=False, ax=ax2)
+        ax2.invert_yaxis()  # 上下反転
+
+        # ヒートマップにパスを描画
+        if not path_list == []:
+            for path in path_list:
+                path_np = np.array(path)
+                ax2.plot(path_np[:,0], path_np[:,1], c="C3")
+
+        
+        if isPlt_similar_section:
+            self.plt_similar_section(ax2, similar_section_file)
+
+        ax4.plot(self.data_X)
+        ax4.set_xlabel("$X$")
+
+        ax1.plot(self.data_Y, range(len(self.data_Y)), c="C1")
+        ax1.set_ylabel("$Y$")
+        
+        # 保存，出力の選択
+        if isSave_path_plt:
+            plt.savefig(output_dir + 'path/' + label + '.png')
+        if isShow_path_plt:
+            plt.show()
+
+        plt.clf()
+        plt.close()
+
+    def plt_similar_section(self, ax, sections_file):
+        with open(sections_file) as f:
+            section_list = []
+            for line in f.readlines():
+                head, end = line.split(',')
+                section_list.append([int(head),int(end)])
+                similar_sect_path = []
+                for j in range(int(head), int(end)+1):
+                    similar_sect_path.append([5,j])
+                similar_sect_path_np = np.array(similar_sect_path)
+                ax.plot(similar_sect_path_np[:,1], similar_sect_path_np[:,0], c="b")
 
     
     def plt_scoreData(self):
@@ -121,58 +181,22 @@ class Similarity_search():
                         scoreM[i][j] = path_score
                     elif scoreM[i][j] < path_score: # すでにスコアが入っているなら比較して代入
                         scoreM[i][j] = path_score
-            
+        
+
 
         frame_nums = list(range(0, totalNum_frame_tgt))
         frame_score = np.sum(scoreM, axis=1)
-        plt.plot(frame_nums, frame_score, color="k") # 点列(x,y)を黒線で繋いだプロット
-        #plt.show() # プロットを表示
+        plt.plot(frame_nums, frame_score) # 点列(x,y)を黒線で繋いだプロット
         #print(np.sum(scoreM, axis=1))
 
+        # 保存，出力の選択
         if isSave_scoreData_plt:
-            plt.savefig('result/'+'scoreData.png')
+            plt.savefig(output_dir + 'scoreData.png')
+        if isShow_scoreData_plt:
+            plt.show()
 
         plt.clf()
-
-
-
-    
-    # パスをグラフに描画して表示
-    def plt_path(self, list_2d, path_list, label):
-
-        aspectRatio = len(self.data_X)/len(self.data_Y) # 縦横比
-
-        graphWindowSizeBase = 5
-        plt.figure(figsize=(graphWindowSizeBase*aspectRatio, graphWindowSizeBase)) # ウィンドウサイズ
-
-        gs = gridspec.GridSpec(2, 2, width_ratios=[1, 5*aspectRatio], height_ratios=[5, 1]) # グラフの個数，サイズ定義
-        ax1 = plt.subplot(gs[0])
-        ax2 = plt.subplot(gs[1])
-        ax4 = plt.subplot(gs[3])
-
-        # ヒートマップ作成操作
-        list_2d = np.transpose(list_2d) # 転置
-        sns.heatmap(list_2d, square=False, cmap="Oranges", xticklabels=50, yticklabels=50, cbar=False, ax=ax2)
-        ax2.invert_yaxis()  # 上下反転
-
-        # ヒートマップにパスを描画
-        if not path_list == []:
-            for path in path_list:
-                path_np = np.array(path)
-                ax2.plot(path_np[:,0], path_np[:,1], c="C3")
-
-
-        ax4.plot(self.data_X)
-        ax4.set_xlabel("$X$")
-
-        ax1.plot(self.data_Y, range(len(self.data_Y)), c="C1")
-        ax1.set_ylabel("$Y$")
-        
-        #plt.show()
-        if isSave_path_plt:
-            plt.savefig('result/'+'path/'+label+'.png')
-
-        plt.clf()
+        plt.close()
 
     # コンソールにパスをプリント
     def print_path(self, path_Xrange_list):
@@ -227,9 +251,16 @@ def select_file_gui():
 
 
 # リザルト保存情報
-output_dir = 'result'
+output_dir = 'result/'
 isSave_path_plt = True
+isShow_path_plt = False
 isSave_scoreData_plt = True
+isShow_scoreData_plt = True
+isSave_params = True
+
+similar_section_file = 'similar_sections/tgt4_key33.txt'
+isPlt_similar_section = True
+
 if __name__ == '__main__':
     #userDir = "C:/Users/hisa/Desktop/research/"
     userDir = "C:/Users/root/Desktop/hisa_reserch/"
@@ -241,29 +272,36 @@ if __name__ == '__main__':
     keyDataBase = load_handData.HandDataBase() # データベース空箱
     tgtDataBase = load_handData.HandDataBase()
 
-    with open("params/feature_labels.txt", "r", encoding="utf-8") as f:
-        feature_labels = f.read().split('\n')
-
     # 検索キーと検索対象の位置データ読み込み（key:target=多:1）
     #load_handData.loadToDataBase(keyData_dirPath, keyDataBase, 'key')
     #load_handData.loadToDataBase(tgtData_dirPath, tgtDataBase, 'target')
-
-    
 
     # 検索キーと検索対象の位置データ読み込み（key:target=1:1）
     keyData_filePath, tgtData_filePath = select_file_gui()
     load_handData.loadToDataBase_one(keyDataBase, 'key', keyData_filePath)
     load_handData.loadToDataBase_one(tgtDataBase, 'target', tgtData_filePath)
-    
+
 
 
     similarity_search = Similarity_search()
-    
+
+    # 設定したパラメータの読み込み
+    with open("params/feature_labels.txt", "r", encoding="utf-8") as f:
+        feature_labels = f.read().split('\n')
     with open("params/weights.txt") as f:
         for line in f.readlines():
             key, val = line.split(',')
             similarity_search.weights_dict[key] = int(val)
 
+    # 使用したパラメータをresultに保存
+    shutil.copyfile("params/weights.txt", "result/params/weights.txt")
+    with open('result/params/threshold.txt', 'w') as f:
+        f.write('path cost : ' + str(similarity_search.pathThreshold) + '\n')
+        f.write('frame range : ' + str(similarity_search.frameThreshold) + '\n')
+    with open('result/params/files.txt', 'w') as f:
+        f.write('key file : ' + str(keyData_filePath) + '\n')
+        f.write('target file : ' + str(tgtData_filePath) + '\n')
+    
     #similarity_search.calc_handElementPath()
     similarity_search.calc_handAllElementPath()
     similarity_search.plt_scoreData()
