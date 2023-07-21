@@ -32,8 +32,8 @@ class Similarity_search():
             '0x_R':1, '0y_R':3, '1x_R':1, '1y_R':1, '2x_R':1, '2y_R':1, '3x_R':1, '3y_R':1, '4x_R':1, '4y_R':1, '5x_R':1, '5y_R':1, '6x_R':1, '6y_R':1, '7x_R':1, '7y_R':1, '8x_R':1, '8y_R':1, '9x_R':1, '9y_R':1,
             '10x_R':1, '10y_R':1, '11x_R':1, '11y_R':1, '12x_R':1, '12y_R':1, '13x_R':1, '13y_R':1, '14x_R':1, '14y_R':1, '15x_R':1, '15y_R':1, '16x_R':1, '16y_R':1, '17x_R':1, '17y_R':1, '18x_R':1, '18y_R':1, '19x_R':1, '19y_R':1, '20x_R':1, '20y_R':1}
         """
-        self.pathThreshold = 1
-        self.frameThreshold = 20
+        self.costThreshold = 10000
+        self.frameThreshold = 10
         self.all_path_Xrange_list = []
         self.scoreData_plt = None
         self.path_plt_list = []
@@ -46,8 +46,8 @@ class Similarity_search():
             print("select joint name in >>> ", end="")
             print(feature_labels[1:])
             indexLabel = str(input("Please enter :"))
-            #pathThreshold = int(input("path threshold is :"))
-            #pathThreshold = int(input("frame threshold is :"))
+            #costThreshold = int(input("path threshold is :"))
+            #costThreshold = int(input("frame threshold is :"))
         except:
             input("something is wrong")
             
@@ -59,18 +59,17 @@ class Similarity_search():
         self.data_X = tgtDataBase.AllHandData_df[self.tgtDataNum][self.indexLabel].tolist()
         calc_partialDtw.key_data = self.data_Y
         calc_partialDtw.tgt_data = self.data_X
-        calc_partialDtw.PATH_TH = self.pathThreshold # 出力パスの最大合計スコア
+        calc_partialDtw.COST_TH = self.costThreshold # 出力パスの最大合計スコア
         calc_partialDtw.FRAME_TH = self.frameThreshold # 出力パスの最低経由フレーム数
         
         calc_partialDtw.create_matrix()
         
-        path_list, path_Xrange_list = calc_partialDtw.select_path()
-
+        path_list, path_Xrange_list = calc_partialDtw.select_path_topThree()
         if path_Xrange_list == []:
             myfunc.printline("path is not founded")
         else:
-            self.print_path(path_Xrange_list)
-            self.plt_path(calc_partialDtw.costMatrix, path_list)
+            #self.print_path(path_Xrange_list)
+            self.plt_path(calc_partialDtw.costMatrix, path_list, self.indexLabel)
 
     
     
@@ -84,16 +83,16 @@ class Similarity_search():
             self.data_X = tgtDataBase.AllHandData_df[self.tgtDataNum][indexLabel].tolist()
             calc_partialDtw.key_data = self.data_Y
             calc_partialDtw.tgt_data = self.data_X
-            calc_partialDtw.PATH_TH = self.pathThreshold # 出力パスの最大合計スコア
+            calc_partialDtw.COST_TH = self.costThreshold # 出力パスの最大合計スコア
             calc_partialDtw.FRAME_TH = self.frameThreshold # 出力パスの最低経由フレーム数
         
             calc_partialDtw.create_matrix()
 
-            path_list, path_Xrange_list = calc_partialDtw.select_path()
+            path_list, path_Xrange_list = calc_partialDtw.select_path_topThree()
             #myfunc.printline(path_Xrange_list)
-
+            
             self.plt_path(calc_partialDtw.costMatrix, path_list, indexLabel)
-
+            
             # 保存
             if isSave_path_plt:
                 myfunc.save_2dData_csv(indexLabel, output_dir + 'path/', path_Xrange_list)
@@ -175,7 +174,7 @@ class Similarity_search():
                 #maxPathScore = (len_Y + ((path_end - path_head))) * MAX_DIST
                 #maxPathScore =  (len_Y + (len_Y * 1.5)) * MAX_DIST
 
-                path_score = (self.pathThreshold - path_cost)*weight # スコアに変換（スコア : 値が大きいほど類似度高い）
+                path_score = (self.costThreshold - path_cost)*weight # スコアに変換（スコア : 値が大きいほど類似度高い）
                 for i in range(path_head, (path_end)): # path_head ~ path_end の値をiに代入
                     if scoreM[i][j] == 0: # スコアが入ってなければスコアを代入
                         scoreM[i][j] = path_score
@@ -252,11 +251,11 @@ def select_file_gui():
 
 # リザルト保存情報
 output_dir = 'result/'
-isSave_path_plt = True
-isShow_path_plt = False
-isSave_scoreData_plt = True
-isShow_scoreData_plt = True
-isSave_params = True
+isSave_path_plt = False
+isShow_path_plt = True
+isSave_scoreData_plt = False
+isShow_scoreData_plt = False
+isSave_params = False
 
 similar_section_file = 'similar_sections/tgt4_key33.txt'
 isPlt_similar_section = True
@@ -296,14 +295,14 @@ if __name__ == '__main__':
     # 使用したパラメータをresultに保存
     shutil.copyfile("params/weights.txt", "result/params/weights.txt")
     with open('result/params/threshold.txt', 'w') as f:
-        f.write('path cost : ' + str(similarity_search.pathThreshold) + '\n')
+        f.write('path cost : ' + str(similarity_search.costThreshold) + '\n')
         f.write('frame range : ' + str(similarity_search.frameThreshold) + '\n')
     with open('result/params/files.txt', 'w') as f:
         f.write('key file : ' + str(keyData_filePath) + '\n')
         f.write('target file : ' + str(tgtData_filePath) + '\n')
     
-    #similarity_search.calc_handElementPath()
-    similarity_search.calc_handAllElementPath()
-    similarity_search.plt_scoreData()
+    similarity_search.calc_handElementPath()
+    #similarity_search.calc_handAllElementPath()
+    #similarity_search.plt_scoreData()
 
 
