@@ -231,7 +231,8 @@ class Calc_PartialDtw():
         pathM = self.pathMatrix.copy()
         headM = self.headMatrix.copy()
 
-        matrix_Xlen = len(headM[:, -1])
+        matrix_Xlen = len(headM[:, 0])
+        matrix_Ylen = len(headM[0, :])
 
 
         for i, head_i in enumerate(headM[:, -1]):
@@ -242,12 +243,13 @@ class Calc_PartialDtw():
                 if X_range < self.FRAME_TH:
                     costM[i, -1] = 99999 # 例外値
                     
-            
+            """
             # 不要
             # パスのコストについて，しきい値より大きいパスを候補から外す
             if not self.COST_TH == None:
                 if costM[i, -1] > self.COST_TH:
                     costM[i, -1] = 99999 # 例外値
+            """
 
         path_end_list = []
         i = 0
@@ -257,6 +259,10 @@ class Calc_PartialDtw():
             sameHead_i_min = sameHead_i_list[np.argmin(costM[sameHead_i_list[0]:(sameHead_i_list[-1]+1), -1])] # 最小選択，返却地はx方向フレーム番号
             i = i + len(sameHead_i_list) # 次の開始地点が同じパスの組を参照するため，インデックスを加算
             path_end_list.append(sameHead_i_min)
+
+        ################################################################
+        #path_end_list = [i for i in range(matrix_Xlen)] # 全のパス表示
+        ################################################################
 
         path_list = []
         path_Xrange_list = []
@@ -269,8 +275,8 @@ class Calc_PartialDtw():
             
             # 生き残ったパスを参照してリストに追加
             reservation_i = i
-            reservation_j = -1
-            path_conn = []
+            reservation_j = matrix_Ylen - 1 
+            path_conn = [[reservation_i, reservation_j]]
             path_Xrange_list.append([headM[reservation_i, -1], reservation_i, costM[reservation_i, -1]]) # [開始フレーム, 終了フレーム]
             while(pathM[reservation_i, reservation_j][1] != 0):
                 conn = pathM[reservation_i, reservation_j]

@@ -38,8 +38,6 @@ posFromWrist_19x_L,1
 posFromWrist_19y_L,1
 posFromWrist_20x_L,1
 posFromWrist_20y_L,1
-posFromWrist_0x_R,1
-posFromWrist_0y_R,1
 posFromWrist_1x_R,1
 posFromWrist_1y_R,1
 posFromWrist_2x_R,1

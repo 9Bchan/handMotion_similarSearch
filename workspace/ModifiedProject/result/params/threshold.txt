@@ -1,2 +1,2 @@
-path cost : 10000
-frame range : 10
+path cost : 10
+frame range : 20

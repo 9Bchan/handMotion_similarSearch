@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import matplotlib.cm as cm
 import seaborn as sns
 import pandas as pd
 import numpy as np
@@ -23,7 +24,8 @@ class Similarity_search():
         self.tgtDataNum = 0
         self.data_X = None
         self.data_Y = None
-        self.indexLabel = 'posFromWrist_1x_L'
+        self.indexLabel = 'posFromWrist_1y_R'
+        self.feature_labels = None  # 手話の特徴データラベル
         # 中身忘れそうだから辞書型で書いてる
         self.weights_dict = {}
         """
@@ -32,8 +34,8 @@ class Similarity_search():
             '0x_R':1, '0y_R':3, '1x_R':1, '1y_R':1, '2x_R':1, '2y_R':1, '3x_R':1, '3y_R':1, '4x_R':1, '4y_R':1, '5x_R':1, '5y_R':1, '6x_R':1, '6y_R':1, '7x_R':1, '7y_R':1, '8x_R':1, '8y_R':1, '9x_R':1, '9y_R':1,
             '10x_R':1, '10y_R':1, '11x_R':1, '11y_R':1, '12x_R':1, '12y_R':1, '13x_R':1, '13y_R':1, '14x_R':1, '14y_R':1, '15x_R':1, '15y_R':1, '16x_R':1, '16y_R':1, '17x_R':1, '17y_R':1, '18x_R':1, '18y_R':1, '19x_R':1, '19y_R':1, '20x_R':1, '20y_R':1}
         """
-        self.costThreshold = 10000
-        self.frameThreshold = 10
+        self.costThreshold = 10
+        self.frameThreshold = 20
         self.all_path_Xrange_list = []
         self.scoreData_plt = None
         self.path_plt_list = []
@@ -44,7 +46,7 @@ class Similarity_search():
             self.keyDataNum = int(input("key data number is (0~153):"))
             self.tgtDataNum = int(input("target data number is (0~4):"))
             print("select joint name in >>> ", end="")
-            print(feature_labels[1:])
+            print(self.feature_labels[1:])
             indexLabel = str(input("Please enter :"))
             #costThreshold = int(input("path threshold is :"))
             #costThreshold = int(input("frame threshold is :"))
@@ -69,14 +71,14 @@ class Similarity_search():
             myfunc.printline("path is not founded")
         else:
             #self.print_path(path_Xrange_list)
-            self.plt_path(calc_partialDtw.costMatrix, path_list, self.indexLabel)
+            self.plt_path(calc_partialDtw.costMatrix, path_list, path_Xrange_list, self.indexLabel)
 
     
     
 
     #　全ての手の情報要素についてパスを計算，all_path_Xrange_list に結果を保存
     def calc_handAllElementPath(self):
-        for indexLabel in tqdm(feature_labels[1:], bar_format="{l_bar}{bar:10}{r_bar}{bar:-10b}", colour='green'):
+        for indexLabel in tqdm(self.feature_labels[1:], bar_format="{l_bar}{bar:10}{r_bar}{bar:-10b}", colour='green'):
         #for indexLabel in labels[1:]:
             calc_partialDtw = partial_DTW.Calc_PartialDtw()
             self.data_Y = keyDataBase.AllHandData_df[self.keyDataNum][indexLabel].tolist()
@@ -91,7 +93,7 @@ class Similarity_search():
             path_list, path_Xrange_list = calc_partialDtw.select_path_topThree()
             #myfunc.printline(path_Xrange_list)
             
-            self.plt_path(calc_partialDtw.costMatrix, path_list, indexLabel)
+            self.plt_path(calc_partialDtw.costMatrix, path_list, path_Xrange_list, indexLabel)
             
             # 保存
             if isSave_path_plt:
@@ -102,7 +104,7 @@ class Similarity_search():
 
     
     # パスをグラフに描画して表示
-    def plt_path(self, list_2d, path_list, label):
+    def plt_path(self, list_2d, path_list, path_Xrange_list, label):
 
         aspectRatio = len(self.data_X)/len(self.data_Y) # 縦横比
 
@@ -121,9 +123,11 @@ class Similarity_search():
 
         # ヒートマップにパスを描画
         if not path_list == []:
-            for path in path_list:
+            for i, path in enumerate(path_list):
+                cost = path_Xrange_list[i][2]
+                color = cm.Reds(1-cost) # コストの値に応じて色変更
                 path_np = np.array(path)
-                ax2.plot(path_np[:,0], path_np[:,1], c="C3")
+                ax2.plot(path_np[:,0], path_np[:,1], c=color)
 
         
         if isPlt_similar_section:
@@ -163,7 +167,7 @@ class Similarity_search():
         # all_path_Xrange_listを展開，関節要素についてパスとスコアの情報を取得，時系列スコアデータを行列計算
         scoreM = np.zeros((totalNum_frame_tgt, len(self.all_path_Xrange_list)), float)
         for j, path_Xrange_list in enumerate(self.all_path_Xrange_list):
-            label = feature_labels[1+j]
+            label = self.feature_labels[1+j]
             weight = self.weights_dict[label]
             for path_Xrange in path_Xrange_list:
                 
@@ -187,6 +191,9 @@ class Similarity_search():
         frame_score = np.sum(scoreM, axis=1)
         plt.plot(frame_nums, frame_score) # 点列(x,y)を黒線で繋いだプロット
         #print(np.sum(scoreM, axis=1))
+
+        if isPlt_similar_section:
+            self.plt_similar_section(plt, similar_section_file)
 
         # 保存，出力の選択
         if isSave_scoreData_plt:
@@ -236,7 +243,7 @@ def select_file_gui():
             os.sys.exit()
         elif event == 'submit':
             if values['keyData_file'] == "":
-                keyData_filePath = "handData/key/154_part33.csv"
+                keyData_filePath = "handData/key/155_part13.csv"
             else:
                 keyData_filePath = values['keyData_file']
             if values['tgtData_file'] == "":
@@ -250,50 +257,57 @@ def select_file_gui():
 
 
 # リザルト保存情報
-output_dir = 'result/'
-isSave_path_plt = False
-isShow_path_plt = True
-isSave_scoreData_plt = False
-isShow_scoreData_plt = False
-isSave_params = False
+isSave_path_plt = True
+isSave_scoreData_plt = True
+isSave_params = True
 
-similar_section_file = 'similar_sections/tgt4_key33.txt'
+isShow_path_plt = False
+isShow_scoreData_plt = True
+
 isPlt_similar_section = True
 
-if __name__ == '__main__':
-    #userDir = "C:/Users/hisa/Desktop/research/"
-    userDir = "C:/Users/root/Desktop/hisa_reserch/"
-    keyData_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/tango/"
-    tgtData_dirPath = userDir + "HandMotion_SimilarSearch/workspace/TimeSeries_HandPositionData/bunsyo/"
-    keyData_dirPath = "handData/key"
-    tgtData_dirPath = "handData/target"
+output_dir = 'result/'
+similar_section_file = 'similar_sections/tgt4_key13.txt'
+weight_file = "params/weights_onlyR.txt"
 
-    keyDataBase = load_handData.HandDataBase() # データベース空箱
+
+if __name__ == '__main__':
+    # データベース空箱
+    keyDataBase = load_handData.HandDataBase() 
     tgtDataBase = load_handData.HandDataBase()
 
+    """
     # 検索キーと検索対象の位置データ読み込み（key:target=多:1）
-    #load_handData.loadToDataBase(keyData_dirPath, keyDataBase, 'key')
-    #load_handData.loadToDataBase(tgtData_dirPath, tgtDataBase, 'target')
+    keyData_dirPath = "handData/key"
+    tgtData_dirPath = "handData/target"
+    load_handData.loadToDataBase(keyData_dirPath, keyDataBase, 'key')
+    load_handData.loadToDataBase(tgtData_dirPath, tgtDataBase, 'target')
+    """
 
+    #"""
     # 検索キーと検索対象の位置データ読み込み（key:target=1:1）
     keyData_filePath, tgtData_filePath = select_file_gui()
     load_handData.loadToDataBase_one(keyDataBase, 'key', keyData_filePath)
     load_handData.loadToDataBase_one(tgtDataBase, 'target', tgtData_filePath)
+    #"""
 
-
-
+    # 類似検索実行クラス
     similarity_search = Similarity_search()
 
-    # 設定したパラメータの読み込み
-    with open("params/feature_labels.txt", "r", encoding="utf-8") as f:
-        feature_labels = f.read().split('\n')
-    with open("params/weights.txt") as f:
+    # 設定したパラメータの読み込み -----------------------------------------------------------------------
+    similarity_search.costThreshold = 10
+    similarity_search.frameThreshold = 20
+    with open("params/self.feature_labels.txt", "r", encoding="utf-8") as f:
+        similarity_search.feature_labels = f.read().split('\n')
+    with open(weight_file) as f:
         for line in f.readlines():
             key, val = line.split(',')
-            similarity_search.weights_dict[key] = int(val)
+            similarity_search.weights_dict[key] = float(val)
+    
+    # -------------------------------------------------------------------------------------------------
 
     # 使用したパラメータをresultに保存
-    shutil.copyfile("params/weights.txt", "result/params/weights.txt")
+    shutil.copyfile(weight_file, "result/params/weights.txt")
     with open('result/params/threshold.txt', 'w') as f:
         f.write('path cost : ' + str(similarity_search.costThreshold) + '\n')
         f.write('frame range : ' + str(similarity_search.frameThreshold) + '\n')
@@ -301,8 +315,10 @@ if __name__ == '__main__':
         f.write('key file : ' + str(keyData_filePath) + '\n')
         f.write('target file : ' + str(tgtData_filePath) + '\n')
     
-    similarity_search.calc_handElementPath()
-    #similarity_search.calc_handAllElementPath()
-    #similarity_search.plt_scoreData()
+    #similarity_search.calc_handElementPath()
+    similarity_search.calc_handAllElementPath()
+    similarity_search.plt_scoreData()
+    
+    # 全てのkeyについて検索する関数は未作成
 
 
