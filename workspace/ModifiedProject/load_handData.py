@@ -1,7 +1,7 @@
 import glob
 import csv
 import os
-import myfunc
+import my_functions as my
 import pandas as pd
 import re
 from tqdm import tqdm
@@ -76,7 +76,6 @@ def calc_handData(path):
 
         posFromBody_labels = ['posFromBody_0x_L', 'posFromBody_0y_L', 'posFromBody_0x_R', 'posFromBody_0y_R']
         
-
         # 手首からのベクトル計算
         joint_x_L_labels = ['1x_L', '2x_L', '3x_L', '4x_L', '5x_L', '6x_L', '7x_L', '8x_L', '9x_L', '10x_L', '11x_L', '12x_L', '13x_L', '14x_L', '15x_L', '16x_L', '17x_L', '18x_L', '19x_L', '20x_L'] # 手首を除いた手指関節ラベル
         posInImg_excNone_x_L_df = posInImg_excNone_df.loc[1:posInImg_excNone_df_colSize, joint_x_L_labels].astype(float) # （手首速度行列とサイズを合わせるため0フレーム目はカット）
@@ -118,28 +117,25 @@ def calc_handData(path):
 
 
 
-        #myfunc.printlines(posFrmWrist_excNone_x_L_df)
-        #myfunc.printlines(posFrmWrist_excNone_y_L_df)
-        #myfunc.printlines(posFrmWrist_excNone_x_R_df)
-        #myfunc.printlines(posFrmWrist_excNone_y_R_df)
+        #my.printlines(posFrmWrist_excNone_x_L_df)
+        #my.printlines(posFrmWrist_excNone_y_L_df)
+        #my.printlines(posFrmWrist_excNone_x_R_df)
+        #my.printlines(posFrmWrist_excNone_y_R_df)
 
         
         #vel_labels = ['vel_0x_L', 'vel_0y_L', 'vel_0x_R', 'vel_0y_R']
         #handData_df[vel_labels] = vel_excNone_df[wrist_labels]
-        #myfunc.printline(handData_df)
+        #my.printline(handData_df)
         
         
-
-
-
         return handData_df, origioriginallyTotalFrame
 
 def loadToDataBase_all(dirPath, handDataBase, label):
-    myfunc.printline("Start loading " + label + " data...")
+    my.printline("Start loading " + label + " data...")
     handData_filePath_list = glob.glob(dirPath +"*") # データのパス取得
     fileNum = len(handData_filePath_list)
     if fileNum == 0:
-        myfunc.printline(label + " data is not defined")
+        my.printline(label + " data is not defined")
         os.sys.exit()
 
     if handData_filePath_list is not None:
@@ -155,10 +151,10 @@ def loadToDataBase_all(dirPath, handDataBase, label):
             #print(filePath)
             #print(handData_df)
             
-    myfunc.printline("Completed")
+    my.printline("Completed")
 
 def loadToDataBase_one(handDataBase, label, data_filePath):
-    myfunc.printline("Start loading " + label + " data...")
+    my.printline("Start loading " + label + " data...")
 
     handData_df, origioriginallyTotalFrame = calc_handData(data_filePath)
     fileName = os.path.splitext(os.path.basename(data_filePath))[0]
@@ -168,7 +164,7 @@ def loadToDataBase_one(handDataBase, label, data_filePath):
     handDataBase.AllFileNames.append(fileName)
     handDataBase.originallyTotalFrame_list.append(origioriginallyTotalFrame)
 
-    myfunc.printline("Completed")
+    my.printline("Completed")
 
 #　ファイルを番号順に読み込むために使用
 def atoi(text):
