@@ -346,9 +346,9 @@ if __name__ == '__main__':
 
     holistic =  mp_holistic.Holistic(
             static_image_mode=False,        # 静止画:True 動画:False
-            #UPPER_BODY_ONLY=True,           # 上半身のみ:True 全身:False
+            #upper_body_only=True,           # 上半身のみ:True 全身:False
             smooth_landmarks=False,          # ジッターを減らすかどうか
-            min_detection_confidence=0.1,
-            min_tracking_confidence=0.1)
+            min_detection_confidence=0.8,
+            min_tracking_confidence=0.8)
     
     Main().run()

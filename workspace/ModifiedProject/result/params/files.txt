@@ -1,2 +1,2 @@
-key file : handData/key/154_part33.csv
-target file : handData/target/4.csv
+key file : C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/workspace/ModifiedProject/handData/key/156_noiz.csv
+target file : C:/Users/root/Desktop/hisa_reserch/HandMotion_SimilarSearch/workspace/ModifiedProject/handData/target/10.csv
