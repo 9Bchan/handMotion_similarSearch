@@ -13,7 +13,7 @@ import math
 
 
 # my code
-import partial_match_DTW
+#import partial_match_DTW
 import load_handData
 import my_functions as my
 
