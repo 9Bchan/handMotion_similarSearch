@@ -6,6 +6,7 @@ import PySimpleGUI as sg
 from pathlib import Path
 
 import my_functions as my
+import p_gui
 
 ALL_JOINT_NUM = 21
 
@@ -29,45 +30,34 @@ labels = ['', '0x_L', '0y_L', '1x_L', '1y_L', '2x_L', '2y_L', '3x_L', '3y_L', '4
 
 def main():
     # 読み込む動画ファイルがあるディレクトリと，関節データを出力するディレクトリ指定
-    load_video_dir, output_dir = get_dir_gui()
+    load_video_dir, output_dir = p_gui.get_dir_input_output()
 
-    videoPath_list = glob.glob(load_video_dir +"*")
+    filePath_list = glob.glob(load_video_dir +"*")
     videoName_list = []
     all_dataName = []
 
     # guiレイアウト
-    BAR_MAX = len(videoPath_list)
-    layout = [[sg.Text('変換中...')],
-            [sg.ProgressBar(BAR_MAX, orientation='h', size=(20,20), key='-PROG-')],
-            [sg.Cancel()]]
-    window = sg.Window('プログレスバー', layout)
-    bar_currentNum = 1
+    p_gui_progressBar = p_gui.ProgressBar()
+    p_gui_progressBar.set_window(len(filePath_list))
 
-    for videoPath in videoPath_list:
+    for filePath in filePath_list:
         #　gui処理
-        event, values = window.read(timeout=10)
-        if event == 'Cancel' or event == sg.WIN_CLOSED:
-            my.printline("強制的にプログラムを終了しました")
-            os.sys.exit()
-        window['-PROG-'].update(bar_currentNum)
-        bar_currentNum += 1
+        p_gui_progressBar.update_window()
 
         # 変換処理
-        videoFile = os.path.basename(videoPath)
+        videoFile = os.path.basename(filePath)
         videoName, videoExt = os.path.splitext(videoFile)
         videoName_list.append(videoName)
 
         all_dataName.append([videoName]) 
-        jointPosition_perFrame = get_jointPosition_perFrame(videoPath)
+        jointPosition_perFrame = get_jointPosition_perFrame(filePath)
         my.save_2dData_csv(videoName, output_dir, jointPosition_perFrame)
         my.printline("saved as " + output_dir + videoName + '.csv')
     
-    window.close()
+    p_gui_progressBar.close_window()
 
+'''
 def get_dir_gui():
-    '''
-    ファイルを選択して読み込む
-    '''
     # GUIのレイアウト
     layout = [
         [
@@ -101,7 +91,7 @@ def get_dir_gui():
                 break
     window.close()
     
-    return load_video_dir, output_dir
+    return load_video_dir, output_dir'''
 
 # MediaPipe出力データをリストに変換
 def list_from_randmark(hand_L, hand_R, pose, frame_width, frame_height):
@@ -143,8 +133,8 @@ def list_from_randmark(hand_L, hand_R, pose, frame_width, frame_height):
     return jointPosition_L, jointPosition_R, bodyPosition_center
 
 # フレーム毎の関節位置データを作成
-def get_jointPosition_perFrame(videoPath):
-    cap = cv2.VideoCapture(videoPath)
+def get_jointPosition_perFrame(filePath):
+    cap = cv2.VideoCapture(filePath)
     frame_width = float(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = float(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 

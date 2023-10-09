@@ -12,27 +12,18 @@ pd.set_option('display.max_rows', None)
 
 def main():
     # 読み込む動画ファイルがあるディレクトリと，関節データを出力するディレクトリ指定
-    load_joint_dir, output_dir = get_dir_gui()
+    load_joint_dir, output_dir = p_gui.get_dir_input_output()
 
     filePath_list = glob.glob(load_joint_dir +"*")
     fileName_list = []
 
     # guiレイアウト
-    BAR_MAX = len(filePath_list)
-    layout = [[sg.Text('変換中...')],
-            [sg.ProgressBar(BAR_MAX, orientation='h', size=(20,20), key='-PROG-')],
-            [sg.Cancel()]]
-    window = sg.Window('プログレスバー', layout)
-    bar_currentNum = 1
+    p_gui_progressBar = p_gui.ProgressBar()
+    p_gui_progressBar.set_window(len(videoPath_list))
 
     for filePath in filePath_list:
         #　gui処理
-        event, values = window.read(timeout=10)
-        if event == 'Cancel' or event == sg.WIN_CLOSED:
-            my.printline("強制的にプログラムを終了しました")
-            os.sys.exit()
-        window['-PROG-'].update(bar_currentNum)
-        bar_currentNum += 1
+        p_gui_progressBar.update_window()
 
         # 変換処理
         fileFile = os.path.basename(filePath)
@@ -43,46 +34,7 @@ def main():
         execute(filePath, saveFileName)
         my.printline("saved as " + saveFileName)
     
-    window.close()
-
-def get_dir_gui():
-    '''
-    ファイルを選択して読み込む
-    '''
-    # GUIのレイアウト
-    layout = [
-        [
-            sg.Text("関節フォルダ"),
-            sg.InputText(),
-            sg.FolderBrowse(key="folder_from")
-        ],
-        [
-            sg.Text("出力フォルダ"),
-            sg.InputText(),
-            sg.FolderBrowse(key="folder_to")
-        ],
-        [sg.Submit(key="submit"), sg.Cancel("Exit")]
-    ]
-    # WINDOWの生成
-    window = sg.Window("ファイル選択", layout)
-
-    # イベントループ
-    while True:
-        event, values = window.read(timeout=100)
-        if event == 'Exit' or event == sg.WIN_CLOSED:
-            os.sys.exit()
-        elif event == 'submit':
-            if values[0] == "":
-                sg.popup("ファイルが入力されていません。")
-                event = ""
-            else:
-                load_joint_dir = values['folder_from'] + '/'
-                output_dir = values['folder_to'] + '/'
-
-                break
-    window.close()
-    
-    return load_joint_dir, output_dir
+    p_gui_progressBar.close_window()
 
 def execute(path, saveFileName):
     jointPosition_perFrame_df = pd.read_csv(path, header=0, index_col=0, dtype=str)
