@@ -10,6 +10,8 @@ from tqdm import tqdm
 pd.set_option('display.max_rows', None)
 #pd.set_option("display.width", 300)
 
+import p_gui
+import my_functions as my
 
 def main():
     # 読み込む動画ファイルがあるディレクトリと，関節データを出力するディレクトリ指定
@@ -20,7 +22,7 @@ def main():
 
     # guiレイアウト
     p_gui_progressBar = p_gui.ProgressBar()
-    p_gui_progressBar.set_window(len(videoPath_list))
+    p_gui_progressBar.set_window(len(filePath_list))
 
     for filePath in filePath_list:
         #　gui処理

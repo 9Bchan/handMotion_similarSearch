@@ -40,7 +40,7 @@ class Search_shuwa():
         with open(cost_TH_file, "r") as f:
             for line in f:
                 key, value = line.split(":")# 行をコロンで分割してキーと値に分ける
-                values_dict[key] = value.strip() # 改行コードを削除するためにstrip()を使う
+                values_dict[key] = float(value.strip()) # 改行コードを削除するためにstrip()を使う
         self.cost_TH_dict = values_dict
         
         # 重みデータ
@@ -48,7 +48,7 @@ class Search_shuwa():
         with open(weight_file, "r") as f:
             for line in f:
                 key, value = line.split(":")# 行をコロンで分割してキーと値に分ける
-                values_dict[key] = value.strip() # 改行コードを削除するためにstrip()を使う
+                values_dict[key] = float(value.strip()) # 改行コードを削除するためにstrip()を使う
         self.weight_dict = values_dict
         
         # 特徴ラベルリスト
@@ -75,7 +75,7 @@ class Search_shuwa():
     def calc_feature(self):
         # gui
         keyName, tgtName = p_gui.select_key_tgt(self.keyDataBase.handDataName_list, self.tgtDataBase.handDataName_list)
-        featureName = p_gui.select_feature()
+        featureLabel = p_gui.select_feature()
 
         partial_match_DTW = p_partial_match_DTW.Partial_match_DTW()
 
@@ -84,20 +84,18 @@ class Search_shuwa():
         tgtData_df = self.tgtDataBase.handData_df_dict[tgtName].astype(float)
 
         # 指定特徴のデータをリストとして取得
-        keyData_feature = keyData_df[featureName].tolist()
-        tgtData_feature = tgtData_df[featureName].tolist()
+        keyData_feature = keyData_df[featureLabel].tolist()
+        tgtData_feature = tgtData_df[featureLabel].tolist()
 
         self.key_len = len(keyData_feature)
         self.tgt_len = len(tgtData_feature)
 
-        #print(keyData_feature)
-        print(keyData_feature)
-
-        os.sys.exit()
+        self.keyName = keyName
+        self.tgtName = tgtName
 
         partial_match_DTW.set_values(keyData_feature, 
                                     tgtData_feature, 
-                                    self.cost_TH_dict[featureName], 
+                                    self.cost_TH_dict[featureLabel], 
                                     self.frame_TH)
 
         partial_match_DTW.create_matrix()
@@ -107,7 +105,11 @@ class Search_shuwa():
             my.printline("path is not founded")
         else:
             #self.print_path(path_Xrange_list)
-            self.plt_path(partial_match_DTW.costMatrix, path_list, path_Xrange_list, self.indexLabel, tgt_data, key_data)
+            self.plt_path(partial_match_DTW.costMatrix, 
+                        path_list, path_Xrange_list, 
+                        featureLabel, 
+                        keyData_feature, 
+                        tgtData_feature)
 
     def calc_syuwa(self):
         # gui
@@ -123,15 +125,18 @@ class Search_shuwa():
             tgtData_df = self.tgtDataBase.handData_df_dict[tgtName].astype(float)
 
             # 指定特徴のデータをリストとして取得
-            keyData_feature = keyData_df[featureName].tolist()
-            tgtData_feature = tgtData_df[featureName].tolist()
+            keyData_feature = keyData_df[featureLabel].tolist()
+            tgtData_feature = tgtData_df[featureLabel].tolist()
 
             self.key_len = len(keyData_feature)
             self.tgt_len = len(tgtData_feature)
 
+            self.keyName = keyName
+            self.tgtName = tgtName
+
             partial_match_DTW.set_values(keyData_feature, 
                                         tgtData_feature, 
-                                        self.cost_TH_dict[featureName], 
+                                        self.cost_TH_dict[featureLabel], 
                                         self.frame_TH)
 
             partial_match_DTW.create_matrix()
@@ -139,7 +144,9 @@ class Search_shuwa():
             #########################
             ########################
             
-            path_list, path_Xrange_list = calc_partialDtw.select_path_topThree()
+            path_list, path_Xrange_list = partial_match_DTW.select_path_topThree()
+
+            self.all_path_Xrange_list.append(path_Xrange_list)
 
             # gui更新
             p_gui_progressBar.update_window()
@@ -147,16 +154,109 @@ class Search_shuwa():
 
         os.sys.exit()
 
+    # パスをグラフに描画して表示
+    def plt_path(self, list_2d, path_list, path_Xrange_list, label, keyData, tgtData):
+
+        aspectRatio = self.tgt_len/self.key_len # 縦横比
+
+        graphWindowSizeBase = 5
+        plt.figure(figsize=(graphWindowSizeBase*aspectRatio, graphWindowSizeBase)) # ウィンドウサイズ
+
+        gs = gridspec.GridSpec(2, 2, width_ratios=[1, 5*aspectRatio], height_ratios=[5, 1]) # グラフの個数，サイズ定義
+        ax1 = plt.subplot(gs[0])
+        ax2 = plt.subplot(gs[1])
+        ax4 = plt.subplot(gs[3])
+
+        # ヒートマップ作成操作
+        list_2d = np.transpose(list_2d) # 転置
+        sns.heatmap(list_2d, square=False, cmap='Greys', xticklabels=50, yticklabels=50, cbar=False, ax=ax2)
+        ax2.invert_yaxis()  # 上下反転
+
+        
+        # ヒートマップにパスを描画
+        if not path_list == []:
+            print(path_list)
+            for i, path in enumerate(path_list):
+                cost = path_Xrange_list[i][2]
+                #color = cm.Reds(1-cost) # コストの値に応じて色変更
+                path_np = np.array(path)
+                ax2.plot(path_np[:,0], path_np[:,1], c="red")
+
+        
+        ax4.plot(tgtData)
+        ax4.set_xlabel("$X$")
+
+        ax1.plot(keyData, range(len(keyData)), c="C1")
+        ax1.set_ylabel("$Y$")
+        
+        self.plt_similar_section(ax2, "similar_sections/tgt4_key33.txt")
+
+        plt.show()
+
+        plt.clf()
+        plt.close()
+
+
+    # 設定した類似区間に矢印を描画
+    def plt_similar_section(self, ax, sections_file):
+        with open(sections_file) as f:
+            section_list = []
+            for line in f.readlines():
+                head, end = line.split(',')
+                head =int(head)
+                end = int(end)
+                '''
+                section_list.append([int(head),int(end)])
+                similar_sect_path = []
+                for j in range(int(head), int(end)+1):
+                    similar_sect_path.append([0,j])
+                similar_sect_path_np = np.array(similar_sect_path)
+                ax.plot(similar_sect_path_np[:,1], similar_sect_path_np[:,0], c="b")
+                '''
+                arrow_props = dict(arrowstyle="->", mutation_scale=10, color="blue", linewidth=1)
+                ax.annotate("", xy=[head, 0], xytext=[end-5, 0], arrowprops=arrow_props)
+                ax.annotate("", xy=[end, 0], xytext=[head+5, 0], arrowprops=arrow_props)
+
+    def plt_scoreData(self):
+        #totalNum_frame_tgt = self.tgtDataBase.originallyTotalFrame_list[self.tgtDataNum]
+        print(self.tgtDataBase.handData_df_dict[self.tgtName].index.tolist())
+        
+        os.sys.exit()
+        # all_path_Xrange_listを展開，関節要素についてパスとスコアの情報を取得，時系列スコアデータを行列計算
+        scoreM = np.zeros((totalNum_frame_tgt, len(self.all_path_Xrange_list)), float)
+
+        for j, path_Xrange_list in enumerate(self.all_path_Xrange_list):
+            #label = self.feature_labels[1+j]
+            label = self.feature_labels_L1[j]
+            weight = self.weights_dict[label]
+            for path_Xrange in path_Xrange_list:
+                
+                path_head = (self.tgtDataBase.AllHandData_df[self.tgtDataNum]['frame'][path_Xrange[0] + 1])
+                path_end = (self.tgtDataBase.AllHandData_df[self.tgtDataNum]['frame'][path_Xrange[1] + 1])
+                path_cost = path_Xrange[2]
+
+                #maxPathScore = (len_Y + ((path_end - path_head))) * MAX_DIST
+                #maxPathScore =  (len_Y + (len_Y * 1.5)) * MAX_DIST
+
+                path_score = (1000 - path_cost)*weight # スコアに変換（スコア : 値が大きいほど類似度高い）
+                for i in range(path_head, (path_end)): # path_head ~ path_end の値をiに代入
+                    if scoreM[i][j] == 0: # スコアが入ってなければスコアを代入
+                        scoreM[i][j] = path_score
+                    elif scoreM[i][j] < path_score: # すでにスコアが入っているなら比較して代入
+                        scoreM[i][j] = path_score
+        
+
 def main():
-    keyDataDir = "handData/d3_feature/key/"
-    tgtDataDir = "handData/d3_feature/tgt/"
+    keyDataDir = "handData/key/d3_feature/"
+    tgtDataDir = "handData/tgt/d3_feature/"
 
     cost_TH_file = "values/cost_TH_dict.txt"
     weight_file = "values/weight_dict.txt"
 
     search_shuwa = Search_shuwa()
     search_shuwa.set_values(cost_TH_file, weight_file, keyDataDir, tgtDataDir)
-    search_shuwa.calc_syuwa()
+    search_shuwa.calc_feature()
+    search_shuwa.plt_scoreData()
 
 
 
