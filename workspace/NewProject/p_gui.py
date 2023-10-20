@@ -3,7 +3,7 @@ import os
 
 import my_functions as my
 
-p_gui_values_file = "p_gui_values.txt"
+p_gui_values_file = "values/p_gui_values.txt"
 
 def load_dict():
     values_dict = {}

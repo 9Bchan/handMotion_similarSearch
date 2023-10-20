@@ -1,2 +1,0 @@
-joint_from_video
-smooth_joint

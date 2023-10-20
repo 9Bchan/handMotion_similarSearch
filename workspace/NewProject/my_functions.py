@@ -36,3 +36,12 @@ def save_2dData_csv(fileName, dirName, data):
     writer = csv.writer(f)
     writer.writerows(data)
     f.close()
+
+def sus():
+    frame = inspect.currentframe().f_back
+    frame_name = os.path.basename(frame.f_code.co_filename)
+    if len(frame_name) > 10:
+        frame_name = frame_name[:10] + "..."
+    frame_line = frame.f_lineno
+    print("{:<13} : {:<4} : exit".format(frame_name[:13], frame_line))
+    os.sys.exit()

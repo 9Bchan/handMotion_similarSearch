@@ -37,7 +37,7 @@ def main():
         execute(filePath, saveFileName)
         my.printline("saved as " + saveFileName)
     
-    window.close_window()
+    p_gui_progressBar.close_window()
 
 
 def execute(path, saveFileName):
