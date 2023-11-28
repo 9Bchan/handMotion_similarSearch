@@ -218,7 +218,7 @@ class Partial_match_DTW():
             reservation_i = i
             reservation_j = matrix_Ylen - 1 
             path_conn = [[reservation_i, reservation_j]]
-            path_sect_cost_list.append([headM[reservation_i, -1], reservation_i, self.cost_TH - costM[reservation_i, -1]]) # [開始フレーム, 終了フレーム]
+            path_sect_cost_list.append([headM[reservation_i, -1], reservation_i, costM[reservation_i, -1]]) # [開始フレーム, 終了フレーム]
             while(pathM[reservation_i, reservation_j][1] != 0):
                 conn = pathM[reservation_i, reservation_j]
                 path_conn.append([conn[0], conn[1]]) # 通過したマスとコストを保存

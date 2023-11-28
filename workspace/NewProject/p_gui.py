@@ -56,7 +56,7 @@ def get_dir_input_output():
             sg.InputText(),
             sg.FolderBrowse(key="folder_to", initial_folder="handData/tgt")
         ],
-        [sg.Submit(key="submit"), sg.Cancel("Exit")]
+        [sg.Submit(key="選択"), sg.Cancel("終了")]
     ]
     # WINDOWの生成
     window = sg.Window("ファイル選択", layout)
@@ -64,10 +64,10 @@ def get_dir_input_output():
     # イベントループ
     while True:
         event, values = window.read(timeout=100)
-        if event == 'Exit' or event == sg.WIN_CLOSED:
+        if event == '終了' or event == sg.WIN_CLOSED:
             my.printline("プログラムを終了します")
             os.sys.exit()
-        elif event == 'submit':
+        elif event == '選択':
             if values[0] == "":
                 sg.popup("ファイルが入力されていません。")
                 event = ""
@@ -79,7 +79,6 @@ def get_dir_input_output():
     window.close()
     
     return input_dir, output_dir
-
 
 def select_key_tgt(keyName_list, tgtName_list):
     values_dict = load_dict()
@@ -154,5 +153,34 @@ def select_feature():
     
     return featureName
 
+
+def select_cost(cost_TH):
+    # GUIのレイアウト
+    layout = [
+        [sg.Slider(range=(1,5000),
+                    default_value =cost_TH,
+                    resolution=10,
+                    orientation='h',
+                    size=(34.3, 15),
+                    enable_events=True,
+                    key='slider1')],
+        [sg.Submit("選択"), sg.Cancel("終了")]
+    ]
+    # WINDOWの生成
+    window = sg.Window("ファイル選択", layout)
+
+    # イベントループ
+    while True:
+        event, values = window.read(timeout=100)
+        if event == '終了' or event == sg.WIN_CLOSED:
+            cost_TH = None
+            break
+        elif event == '選択':
+            cost_TH = values["slider1"]
+            break
+
+    window.close()
+    
+    return cost_TH
 
 

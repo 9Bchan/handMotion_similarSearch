@@ -44,7 +44,8 @@ def execute(path, saveFileName):
     jointPosition_perFrame_df = linerInterpolation(jointPosition_perFrame_df)
     smoothed_jointPosition_perFrame_df = backwardMovingAverage(jointPosition_perFrame_df)
 
-    smoothed_jointPosition_perFrame_df.to_csv(saveFileName)
+    jointPosition_perFrame_df.to_csv(saveFileName)
+    #smoothed_jointPosition_perFrame_df.to_csv(saveFileName)
 
 # 線形補完
 """
@@ -55,6 +56,7 @@ n : 連続するNoneフレームの数
 m : 補完するフレームの順番（1<=m<=n）
 xm : 補完するフレームのデータ
 xm = (xn-x0)*(m/n) + x0
+
 例 フレーム番号（30,31,32）がNoneフレームだった場合，
 x0 = データ[29]
 xn = データ[33]
