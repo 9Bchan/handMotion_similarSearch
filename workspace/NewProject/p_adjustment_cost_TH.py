@@ -38,7 +38,7 @@ class Search_shuwa():
         self.key_len = None
         self.tgt_len = None
 
-        self.similar_section_file = None
+        self.similar_sections_list = []
         self.saveFile = None
 
         # select True or False
@@ -70,10 +70,17 @@ class Search_shuwa():
         # 特徴ラベルリスト
         with open("values/feature_label.txt", "r", encoding="utf-8") as f:
             self.feature_label_list = f.read().split('\n')
+
+
+        self.similar_sections_file = "similar_sections/tgt4_key33.txt"
+        # 類似区間リスト（目視で求めたやつをグラフに描画するのに用用いる）
+        with open(self.similar_sections_file, "r") as f:
+            for line in f.readlines():
+                start, end = line.split(",")# 行をコロンで分割してキーと値に分ける
+                self.similar_sections_list.append([int(start), int(end)]) # 改行コードを削除するためにstrip()を使う
         
         self.frame_TH = 10
         self.output_dir = "result/"
-        self.similar_section_file = "similar_sections/tgt4_key33.txt"
 
         my.printline("loading handData..")
         self.keyDataBase = p_load_handData.get_handDataBase(keyDataDir)
@@ -82,7 +89,7 @@ class Search_shuwa():
 
     def save_dict(self):
         # cost_TH_dict保存
-        dict_file = "result/values/cost_TH_dict.txt"
+        dict_file = "values/cost_TH_dict.txt"
         with open(dict_file, "w") as f:
             for key, value in self.cost_TH_dict.items():
                 f.write(f"{key}:{int(value)}\n")
@@ -171,44 +178,37 @@ class Search_shuwa():
             
             # DTW行列作成
             partial_match_DTW.create_matrix()
+            # ヒートマップ用行列
+            list_2d = np.transpose(partial_match_DTW.costMatrix) # 転置
 
-            # グラフ設定（不変部分） >>>
-
-            aspectRatio = 4
-            graphWindowSizeBase = 5
+            # グラフ設定 >>>
+            aspectRatio = 4 # 縦に対する横の比率
+            graphWindowSizeBase = 4 # guiのサイズ
             fig = plt.figure(figsize=(graphWindowSizeBase*aspectRatio, graphWindowSizeBase)) # ウィンドウサイズ
+            
 
             gs = gridspec.GridSpec(2, 2, width_ratios=[1, 5*aspectRatio], height_ratios=[5, 1]) # グラフの個数，サイズ定義
-            ax1 = plt.subplot(gs[0])
-            ax2 = plt.subplot(gs[1])
-            ax4 = plt.subplot(gs[3])
+            ax_X = plt.subplot(gs[0]) # 文章データ描画に使用
+            ax_D = plt.subplot(gs[1]) # DTW行列描画に使用
+            ax_Y = plt.subplot(gs[3]) # 単語データ描画に使用
 
-            ax4.plot(tgtData_feature)
-            ax4.set_xlabel("$X$")
+            ax_Y.plot(tgtData_feature)
+            ax_Y.set_xlim(0, self.tgt_len-1) # グラフのx軸を描画範囲全体を使うように調整
+            ax_Y.set_xlabel("$Y$")
 
-            ax1.plot(keyData_feature, range(len(keyData_feature)), c="C1")
-            ax1.set_ylabel("$Y$")
-            
+            ax_X.plot(keyData_feature, range(len(keyData_feature)), c="C1")
+            ax_X.set_ylim(0, self.key_len-1) # グラフのy軸を描画範囲全体を使うように調整
+            ax_X.invert_yaxis()  # 上下反転
 
-            # ヒートマップ作成操作
-            list_2d = np.transpose(partial_match_DTW.costMatrix) # 転置
-            #sns.heatmap(list_2d, square=False, cmap='Greys', xticklabels=50, yticklabels=50, cbar=False, ax=ax2)
-            #ax2.invert_yaxis()  # 上下反転
-            #list_2d = np.rot90(list_2d).copy()
-            #ax2.invert_yaxis()  # 上下反転
-            
-            
-            #ax2_temp = copy.deepcopy(ax2)
-            # <<<
+            ax_X.set_ylabel("$X$")
 
-
-            ###
+            plt.subplots_adjust(wspace=0.035, hspace=0.15) # グラフ同士の隙間をイイ感じに調整
             
 
             # GUIのレイアウト
             layout = [
                 [sg.Canvas(key='-CANVAS-')],
-                [sg.Slider(range=(1,5000),
+                [sg.Slider(range=(0,5000),
                             default_value =self.cost_TH_dict[featureLabel],
                             resolution=10,
                             orientation='h',
@@ -254,43 +254,29 @@ class Search_shuwa():
                             print("range : {} ~ {}, score : {}".format(head, end, score))
                     print("<<<")
 
+                    # ループ内で描画
+                    ax_D.clear() # 初期化（前の描画内容削除．これがないと重くなる）
+                    ax_D.pcolor(list_2d, cmap=plt.cm.Greys) # ヒートマップ
+                    ax_D.get_xaxis().set_ticks([]) # 目盛を削除
+                    ax_D.get_yaxis().set_ticks([])
+                    ax_D.set_ylim(0, self.key_len-1) # 行列の端をカット（描画のつじつま合わせ）
+                    ax_D.set_xlim(0, self.tgt_len-1)
+                    ax_D.invert_yaxis()  # 上下反転
 
-                    #window.find_element("-OUTPUT-").Update("")
+                    
+                    self.plt_similar_section(ax_D)
 
-                    """
-                    self.plt_path(partial_match_DTW.costMatrix, 
-                                path_list, 
-                                path_sect_cost_list, 
-                                featureLabel, 
-                                keyData_feature, 
-                                tgtData_feature)"""
                     
-                    ###
-                    #list_2d = np.rot90(list_2d).copy()
                     
-                    #ax2.collections[0].remove()
-                    ax2.clear()
-                    #sns.heatmap(list_2d, square=False, cmap='Greys', xticklabels=50, yticklabels=50, cbar=False, ax=ax2)
-                    ax2.imshow(list_2d, cmap="Greys")
-                    ax2.invert_yaxis() 
-                    
-                
                     # ヒートマップにパスを描画
                     if not path_list == []:
                         for i, path in enumerate(path_list):
                             score = self.cost_TH_dict[featureLabel] - path_sect_cost_list[i][2]
-
                             color = cm.Reds((score/self.cost_TH_dict[featureLabel])**3) # コストの値に応じて色変更
                             path_np = np.array(path)
-                            ax2.plot(path_np[:,0], path_np[:,1], c=color)
-
+                            ax_D.plot(path_np[:,0], path_np[:,1], c=color)
                     ###
-                    
-                    
-                    fig_agg.draw()
-                    #canvas_agg.draw()
-                    #canvas.draw()
-                    #plt.pause(0.01)
+                    fig_agg.draw() # よくわからんがpltとguiを紐づけたばあいの描画更新関数
             
             self.save_dict()
             window.close()
@@ -356,29 +342,27 @@ class Search_shuwa():
         
         
         
+    # 設定した類似区間に矢印を描画
     def plt_similar_section(self, ax):
-        with open(self.similar_section_file) as f:
-            section_list = []
-            for line in f.readlines():
-                head, end = line.split(',')
-                head =int(head)
-                end = int(end)
-                '''
-                section_list.append([int(head),int(end)])
-                similar_sect_path = []
-                for j in range(int(head), int(end)+1):
-                    similar_sect_path.append([0,j])
-                similar_sect_path_np = np.array(similar_sect_path)
-                ax.plot(similar_sect_path_np[:,1], similar_sect_path_np[:,0], c="b")
-                '''
-                arrow_props = dict(arrowstyle="->", mutation_scale=10, color="blue", linewidth=1)
-                ax.annotate("", xy=[head, 0], xytext=[end-5, 0], arrowprops=arrow_props)
-                ax.annotate("", xy=[end, 0], xytext=[head+5, 0], arrowprops=arrow_props)
+        
+        for start, end in self.similar_sections_list:
+            '''
+            section_list.append([int(head),int(end)])
+            similar_sect_path = []
+            for j in range(int(head), int(end)+1):
+                similar_sect_path.append([0,j])
+            similar_sect_path_np = np.array(similar_sect_path)
+            ax.plot(similar_sect_path_np[:,1], similar_sect_path_np[:,0], c="b")
+            '''
+            arrow_props = dict(arrowstyle="->", mutation_scale=10, color="blue", linewidth=1)
+            y = int(self.key_len*(9/10))
+            ax.annotate("", xy=[start, y], xytext=[end-5, y], arrowprops=arrow_props)
+            ax.annotate("", xy=[end, y], xytext=[start+5, y], arrowprops=arrow_props)
 def main():
-    keyDataDir = "handData/key/d4_feature_d2/"
-    tgtDataDir = "handData/tgt/d4_feature_d2/"
-    #keyDataDir = "handData/key/d4_feature_d3/"
-    #tgtDataDir = "handData/tgt/d4_feature_d3/"
+    #keyDataDir = "handData/key/d4_feature_d2/"
+    #tgtDataDir = "handData/tgt/d4_feature_d2/"
+    keyDataDir = "handData/key/d4_feature_d3/"
+    tgtDataDir = "handData/tgt/d4_feature_d3/"
 
     cost_TH_file = "values/cost_TH_dict.txt"
     weight_file = "values/weight_dict.txt"

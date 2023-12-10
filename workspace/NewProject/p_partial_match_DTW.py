@@ -224,6 +224,9 @@ class Partial_match_DTW():
                 path_conn.append([conn[0], conn[1]]) # 通過したマスとコストを保存
                 reservation_i = conn[0]
                 reservation_j = conn[1]
+            conn = pathM[reservation_i, 0]
+            path_conn.append([conn[0], conn[1]]) # 終点
+            
             path_list.append(path_conn)
             
         

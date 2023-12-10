@@ -22,21 +22,24 @@ import my_functions as my
 
 class Search_shuwa():
     def __init__(self):
-        self.keyDataBase = None
-        self.tgtDataBase = None
-        self.output_dir = None
-        self.cost_TH_dict = {}
-        self.weight_dict = {}
-        self.frame_TH = 10
-        self.feature_label_list = None
-        self.all_path_sect_cost_list = []
+        
+        
+        # set_values関数内で代入　>>>
+        self.cost_TH_dict = {} # DTWの経路選択に使用
+        self.weight_dict = {} # 合計スコア計算に使用
+        self.feature_label_list = None # 特徴ラベル
+        self.similar_sections_list = [] # 目視で求めた類似区間
+        self.frame_TH = None # DTWの経路選択に使用
+        self.output_dir = None # 出力用ディレクトリ
+        self.keyDataBase = None # 単語データ保存
+        self.tgtDataBase = None # 文章データ保存
+        # <<<
 
+        self.all_path_sect_cost_list = []
         self.keyName = None
         self.tgtName = None
         self.key_len = None
         self.tgt_len = None
-
-        self.similar_section_file = None
         self.saveFile = None
 
         # select True or False
@@ -45,12 +48,12 @@ class Search_shuwa():
         self.isSave_path = False # DTW行列を保存
         self.isSave_score = True # スコアデータを保存
 
-        self.isShow_path = True # DTW行列を表示
+        self.isShow_path = False # DTW行列を表示
         self.isShow_score = True # スコアデータを表示
 
 
 
-    def set_values(self, cost_TH_file, weight_file, keyDataDir, tgtDataDir):
+    def set_values(self, cost_TH_file, weight_file, feature_label_file, similar_sections_file, keyDataDir, tgtDataDir):
         # コスト閾値
         values_dict = {}
         with open(cost_TH_file, "r") as f:
@@ -68,12 +71,18 @@ class Search_shuwa():
         self.weight_dict = values_dict
         
         # 特徴ラベルリスト
-        with open("values/feature_label.txt", "r", encoding="utf-8") as f:
+        with open(feature_label_file, "r", encoding="utf-8") as f:
             self.feature_label_list = f.read().split('\n')
+
+
+        # 類似区間リスト（目視で求めたやつをグラフに描画するのに用用いる）
+        with open(similar_sections_file, "r") as f:
+            for line in f.readlines():
+                start, end = line.split(",")# 行をコロンで分割してキーと値に分ける
+                self.similar_sections_list.append([int(start), int(end)]) # 改行コードを削除するためにstrip()を使う
         
         self.frame_TH = 10
         self.output_dir = "result/"
-        self.similar_section_file = "similar_sections/tgt4_key33.txt"
 
         my.printline("loading handData..")
         self.keyDataBase = p_load_handData.get_handDataBase(keyDataDir)
@@ -245,23 +254,19 @@ class Search_shuwa():
 
     # 設定した類似区間に矢印を描画
     def plt_similar_section(self, ax):
-        with open(self.similar_section_file) as f:
-            section_list = []
-            for line in f.readlines():
-                head, end = line.split(',')
-                head =int(head)
-                end = int(end)
-                '''
-                section_list.append([int(head),int(end)])
-                similar_sect_path = []
-                for j in range(int(head), int(end)+1):
-                    similar_sect_path.append([0,j])
-                similar_sect_path_np = np.array(similar_sect_path)
-                ax.plot(similar_sect_path_np[:,1], similar_sect_path_np[:,0], c="b")
-                '''
-                arrow_props = dict(arrowstyle="->", mutation_scale=10, color="blue", linewidth=1)
-                ax.annotate("", xy=[head, 0], xytext=[end-5, 0], arrowprops=arrow_props)
-                ax.annotate("", xy=[end, 0], xytext=[head+5, 0], arrowprops=arrow_props)
+        
+        for start, end in self.similar_sections_list:
+            '''
+            section_list.append([int(head),int(end)])
+            similar_sect_path = []
+            for j in range(int(head), int(end)+1):
+                similar_sect_path.append([0,j])
+            similar_sect_path_np = np.array(similar_sect_path)
+            ax.plot(similar_sect_path_np[:,1], similar_sect_path_np[:,0], c="b")
+            '''
+            arrow_props = dict(arrowstyle="->", mutation_scale=10, color="blue", linewidth=1)
+            ax.annotate("", xy=[start, 0], xytext=[end-5, 0], arrowprops=arrow_props)
+            ax.annotate("", xy=[end, 0], xytext=[start+5, 0], arrowprops=arrow_props)
 
     def plt_scoreData(self):
         #totalNum_frame_tgt = self.tgtDataBase.originallyTotalFrame_list[self.tgtDataNum]
@@ -269,7 +274,15 @@ class Search_shuwa():
         #tgtLen = len(self.tgtDataBase.handData_df_dict[self.tgtName].index.tolist())
     
         # all_path_sect_cost_listを展開，関節要素についてパスとスコアの情報を取得，時系列スコアデータを行列計算
+        fig, ax = plt.subplots()
+
+        self.plt_similar_section(ax)
+
         scoreM = np.zeros((self.tgt_len, len(self.all_path_sect_cost_list)), float)
+
+        plt.xlabel("フレーム", fontname="MS Gothic", fontsize=14)
+        plt.ylabel("スコア", fontname="MS Gothic", fontsize=14)
+        #plt.tick_params(labelsize=12) #目盛文字サイズ
 
         for j, path_sect_cost_list in enumerate(self.all_path_sect_cost_list):
             #label = self.feature_labels[1+j]
@@ -296,6 +309,8 @@ class Search_shuwa():
         frame_score = np.sum(scoreM, axis=1)
         plt.plot(frame_nums, frame_score, c="r") # 点列(x,y)を黒線で繋いだプロット
 
+        
+
         # 保存，出力の選択
         if self.isSave_score:
             plt.savefig(self.output_dir + self.saveFile + "_score.png")
@@ -305,21 +320,33 @@ class Search_shuwa():
         
         plt.clf()
         plt.close()
+    
+    
 
 def main():
-    keyDataDir = "handData/key/d4_feature/from_d3/"
-    tgtDataDir = "handData/tgt/d4_feature/from_d3/"
-    #tgtDataDir = "handData/tgt/d3_feature_key/"
+    # 平滑化前
+    #keyDataDir = "handData/key/d4_feature_d2/"
+    #tgtDataDir = "handData/tgt/d4_feature_d2/"
+    # 平滑化後
+    keyDataDir = "handData/key/d4_feature_d3/"
+    tgtDataDir = "handData/tgt/d4_feature_d3/"
 
     cost_TH_file = "values/cost_TH_dict.txt"
-    weight_file = "values/weight_dict.txt"
+    weight_file = "values/weight_dict_v1s1p1_LR.txt"
+    feature_label_file="values/feature_label.txt"
+    similar_sections_file = "similar_sections/tgt4_key33.txt"
 
     search_shuwa = Search_shuwa()
-    search_shuwa.set_values(cost_TH_file, weight_file, keyDataDir, tgtDataDir)
-    #search_shuwa.calc_syuwa()
-    search_shuwa.calc_feature()
+    search_shuwa.set_values(cost_TH_file,
+                            weight_file,
+                            feature_label_file,
+                            similar_sections_file,
+                            keyDataDir,
+                            tgtDataDir)
+    search_shuwa.calc_syuwa()
+    #search_shuwa.calc_feature()
     
-    #search_shuwa.plt_scoreData()
+    search_shuwa.plt_scoreData()
 
 
 if __name__ == '__main__':

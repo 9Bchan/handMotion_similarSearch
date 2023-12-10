@@ -57,7 +57,7 @@ posFromWrist_6y_R:1000
 posFromWrist_7x_R:1000
 posFromWrist_7y_R:1000
 posFromWrist_8x_R:1000
-posFromWrist_8y_R:1000
+posFromWrist_8y_R:2290
 posFromWrist_9x_R:1000
 posFromWrist_9y_R:1000
 posFromWrist_10x_R:1000
