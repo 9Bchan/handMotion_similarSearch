@@ -332,7 +332,7 @@ def main():
     tgtDataDir = "handData/tgt/d4_feature_d3/"
 
     cost_TH_file = "values/cost_TH_dict.txt"
-    weight_file = "values/weight_dict_v1s1p1_LR.txt"
+    weight_file = "values/weight_LR_xVWB_yVWB.txt"
     feature_label_file="values/feature_label.txt"
     similar_sections_file = "similar_sections/tgt4_key33.txt"
 

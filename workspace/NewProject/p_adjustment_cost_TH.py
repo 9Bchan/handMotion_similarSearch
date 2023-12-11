@@ -147,8 +147,6 @@ class Search_shuwa():
             self.save_dict()
     
     def test(self):
-        
-
         while True:
             # キーとターゲットの名前選択
             keyName, tgtName = p_gui.select_key_tgt(self.keyDataBase.handDataName_list, self.tgtDataBase.handDataName_list)
@@ -227,11 +225,13 @@ class Search_shuwa():
             #canvas.get_tk_widget().pack(side='top', fill='both', expand=1)
 
 
-
+            
             # イベントループ
             while True:
                 event, values = window.read(timeout=100)
                 if event == '終了' or event == sg.WIN_CLOSED:
+                    #print(self.cost_TH_dict)
+                    self.save_dict()
                     break
                 else:
                     if values["-SLIDER-"] is None:
@@ -278,7 +278,7 @@ class Search_shuwa():
                     ###
                     fig_agg.draw() # よくわからんがpltとguiを紐づけたばあいの描画更新関数
             
-            self.save_dict()
+            
             window.close()
 
 
@@ -365,7 +365,7 @@ def main():
     tgtDataDir = "handData/tgt/d4_feature_d3/"
 
     cost_TH_file = "values/cost_TH_dict.txt"
-    weight_file = "values/weight_dict.txt"
+    weight_file = "values/weight_LR_xVWB_yVWB.txt"
 
     search_shuwa = Search_shuwa()
     search_shuwa.set_values(cost_TH_file, weight_file, keyDataDir, tgtDataDir)

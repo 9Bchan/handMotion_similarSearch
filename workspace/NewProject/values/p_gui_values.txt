@@ -1,3 +1,3 @@
 key:33_part
 tgt:4
-feature:posFromWrist_8y_R
+feature:posFromBody_0y_R
