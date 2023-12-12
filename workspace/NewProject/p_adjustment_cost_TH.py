@@ -364,7 +364,7 @@ def main():
     keyDataDir = "handData/key/d4_feature_d3/"
     tgtDataDir = "handData/tgt/d4_feature_d3/"
 
-    cost_TH_file = "values/cost_TH_dict.txt"
+    cost_TH_file = "values/cost_TH_dict_4_part95.txt"
     weight_file = "values/weight_LR_xVWB_yVWB.txt"
 
     search_shuwa = Search_shuwa()

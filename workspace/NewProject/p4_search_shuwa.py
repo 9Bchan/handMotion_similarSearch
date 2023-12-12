@@ -331,10 +331,10 @@ def main():
     keyDataDir = "handData/key/d4_feature_d3/"
     tgtDataDir = "handData/tgt/d4_feature_d3/"
 
-    cost_TH_file = "values/cost_TH_dict.txt"
-    weight_file = "values/weight_R_xW.txt"
+    cost_TH_file = "values/cost_TH_dict_4_part33.txt"
+    weight_file = "values/weight_LR_xW_yW.txt"
     feature_label_file="values/feature_label.txt"
-    similar_sections_file = "similar_sections/tgt4_key33.txt"
+    similar_sections_file = "similar_sections/tgt4_key95.txt"
 
     search_shuwa = Search_shuwa()
     search_shuwa.set_values(cost_TH_file,
