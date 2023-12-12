@@ -82,7 +82,7 @@ posFromWrist_19x_R:1000
 posFromWrist_19y_R:1000
 posFromWrist_20x_R:1000
 posFromWrist_20y_R:1000
-posFromBody_0x_L:2000
-posFromBody_0y_L:2000
-posFromBody_0x_R:2000
-posFromBody_0y_R:2000
+posFromBody_0x_L:1000
+posFromBody_0y_L:1000
+posFromBody_0x_R:1000
+posFromBody_0y_R:1000
